@@ -10,10 +10,15 @@ include("smolpoly.jl")
 
 # Make functions defined in the module available =#
 export 	SmolyakGrid,
+		xGrid!,
 		SmolyakBasis,
 		x2z,
-		z2x, 
+		z2x,
+		x2z!,
+		z2x!,
+		new_sb_Ψ!,		 
 		SmolyakPoly,
-		update_spoly_coef!,
-		update_spoly_f!
+		new_sp_coef!,
+		wgt_sp_coef!,
+		new_sp_f!
 end
