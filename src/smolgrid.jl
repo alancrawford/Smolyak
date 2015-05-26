@@ -13,6 +13,7 @@ Key Refs: JMMV (2014), Burkhardt (2012), github: ECONFORGE/Smolyak
 =#
 
 IntOrVec = Union(Int64,Vector{Int64},Float64,Vector{Float64})
+VecOrArray = Union(Vector{Float64},Array{Float64,2}) 
 
 #= ***************************************** =#
 #= Sub Funs called when creating SmolyakGrid =#
@@ -197,13 +198,13 @@ end
 #= Functions switching between z in [-1,1] and x in [lb,ub] 
 	- See ECONFORGE/Smolyak for unadjusted code =#
 
-function z2x(zpts::Array{Float64,2},lb::Vector{Float64},ub::Vector{Float64})
+function z2x(zpts::VecOrArray,lb::Vector{Float64},ub::Vector{Float64})
 	centers = lb + (ub - lb)./2
     radii = (ub - lb)./2
     return centers .+ zpts.*radii
 end
 
-function x2z(xpts::Array{Float64,2},lb::Vector{Float64},ub::Vector{Float64})
+function x2z(xpts::VecOrArray,lb::Vector{Float64},ub::Vector{Float64})
  	centers = lb + (ub - lb)./2
     radii = (ub - lb)./2
     return (xpts .- centers)./radii
@@ -217,9 +218,10 @@ function x2z!(sg::SmolyakGrid)
     sg.zGrid = (sg.xGrid .- (sg.lb + (sg.ub - sg.lb)./2))./((sg.ub - sg.lb)./2)
 end
 
-function xGrid!(sg::SmolyakGrid, NewX::Array{Float64})
-	sg.xGrid[1:size(NewX,1),:] = NewX
+function xGrid!(sg::SmolyakGrid, NewX::Array{Float64,2}, K::Int64=1, IsIbar::Bool=true)
+	is(IsIbar,true) ?
+		sg.xGrid[1:size(NewX,1),:] = NewX :
+		sg.xGrid[K+1:K+size(NewX,1),:] = NewX
 end
-
 
 

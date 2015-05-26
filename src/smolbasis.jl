@@ -64,6 +64,11 @@ function Tn!(T::Array{Float64,2}, ∂T::Array{Float64,2}, ∂2T::Array{Float64,2
 	end
 end
 
+function Ψ!(Ψ::Vector{Float64}, T::Array{Float64,2}, BFIdx::Int64, DimIdx::Int64, sg::SmolyakGrid)
+	ChebIdx = sg.Binds[DimIdx,BFIdx]+1 
+	Ψ[BFIdx] *= T[DimIdx,ChebIdx] 
+end
+
 function Ψ!(Ψ::Array{Float64,2}, T::Array{Float64,2}, 
 				GridIdx::Int64, BFIdx::Int64, DimIdx::Int64, sg::SmolyakGrid)
 	ChebIdx = sg.Binds[DimIdx,BFIdx]+1 
@@ -181,6 +186,65 @@ function Ψ_fun(sg::SmolyakGrid, k::Int64, SpOut::Bool)
 	end
 end
 
+
+function Ψ_fun(X::Vector{Float64}, sg::SmolyakGrid, k::Int64, SpOut::Bool)
+
+	# Convert to z in [-1,1]
+	#check_domain(X,sg)
+	zX = x2z(X,sg.lb,sg.ub)					# Convert to z in [-1,1]
+
+	D = length(X) 							# Size of Array of Grid points
+	NBF = size(sg.Binds,2)
+	M = maximum(sg.Binds)+1
+	if ==(k,2)
+		Ψ = ones(Float64,NBF)
+		∂Ψ∂z = ones(Float64, NBF, 1, sg.D)
+		∂2Ψ∂z2 = ones(Float64, NBF, 1, sg.D, sg.D)
+		T = Array(Float64, sg.D, M)
+		∂T = similar(T)
+		∂2T = similar(T)	
+		Tn!(T, ∂T, ∂2T, zX, M, sg.D)
+		for d in 1:sg.D, p in 1:NBF
+			Ψ!(Ψ, T, p, d, sg)
+			∂Ψ∂z!(∂Ψ∂z, T, ∂T, 1, p, d, sg)
+			∂2Ψ∂z2!(∂2Ψ∂z2, T, ∂T, ∂2T, 1, p, d, sg)
+		end
+		if is(SpOut,true) 								# Return Sparse Basis Matrix
+			Z1idx = sub2ind(size(∂Ψ∂z),findn(∂Ψ∂z)...)
+			Z2idx = sub2ind(size(∂2Ψ∂z2),findn(∂2Ψ∂z2)...) 
+			return Ψ, sparsevec(Z1idx,∂Ψ∂z[Z1idx]), sparsevec(Z2idx,∂2Ψ∂z2[Z2idx])
+		else										# Return Full Basis Matrix
+			return Ψ, ∂Ψ∂z, ∂2Ψ∂z2
+		end
+	elseif ==(k,1)
+		Ψ = ones(Float64,  NBF)
+		∂Ψ∂z = ones(Float64, NBF, 1, sg.D)
+		T = Array(Float64, sg.D, M)
+		∂T = similar(T)
+		Tn!(T, ∂T, zX, M, sg.D)
+		for d in 1:sg.D, p in 1:NBF
+			Ψ!(Ψ, T, p, d, sg)
+			∂Ψ∂z!(∂Ψ∂z, T, ∂T, 1, p, d, sg)
+		end
+		if is(SpOut,true) 								# Return Sparse Basis Matrix
+			Z1idx = sub2ind(size(∂Ψ∂z),findn(∂Ψ∂z)...)
+			return Ψ, sparsevec(Z1idx,∂Ψ∂z[Z1idx]), Array(Float64,1,1,1,1)
+		else										# Return Full Basis Matrix
+			return Ψ, ∂Ψ∂z, Array(Float64,1,1,1,1)
+		end
+	elseif ==(k,0) 
+		Ψ = ones(Float64,NBF)
+		T = Array(Float64,sg.D,M)
+		Tn!(T, zX, M, sg.D)
+		for d in 1:sg.D, p in 1:NBF
+			Ψ!(Ψ, T, p, d, sg)
+		end
+		return Ψ, Array(Float64,1,1,1), Array(Float64,1,1,1,1)
+	else
+		print("Warning: You µst specify number of derivatives to be 0, 1, or 2")
+	end
+end
+
 function Ψ_fun(X::Array{Float64,2}, sg::SmolyakGrid, k::Int64, SpOut::Bool)
 
 	# Convert to z in [-1,1]
@@ -234,7 +298,7 @@ function Ψ_fun(X::Array{Float64,2}, sg::SmolyakGrid, k::Int64, SpOut::Bool)
 		Ψ = ones(Float64,NBF, N)
 		T = Array(Float64,sg.D,M)
 		for i in 1:N
-			Tn!(T, zX[i,:], M, sg.D)
+			Tn!(T, zX[:,i], M, sg.D)
 			for d in 1:sg.D, p in 1:NBF
 				Ψ!(Ψ, T, i, p, d, sg)
 			end
@@ -268,7 +332,7 @@ type SmolyakBasis
 	µ 			:: IntOrVec				# Index of µ
 	NumPts  	:: Int64				# Number of points in = Num Rows Ψ
 	NumBasisFun	:: Int64				# Number of basis functions under D, µ = Num Cols Ψ
-	Ψ 			:: Array{Float64,2} 	# Basis Funs
+	Ψ 			:: VecOrArray 			# Basis Funs
 	pinvΨ		:: Array{Float64,2} 	# Inverse Basis Funs
 	∂Ψ∂z 		:: SpArray 				# 1st derivative basis funs
 	∂2Ψ∂z2 		:: SpArray			 	# 2nd derivative basis funs
@@ -280,7 +344,7 @@ type SmolyakBasis
 
 	function SmolyakBasis(sg::SmolyakGrid, CalcInv::Bool=false, NumDeriv::Int64=1, SpOut::Bool=false)
 		Ψ, ∂Ψ∂z, ∂2Ψ∂z2 = Ψ_fun(sg, NumDeriv, SpOut)
-		NGP, NBF = size(Ψ)
+		NBF, NGP = size(Ψ)
 		is(CalcInv,true) ? invΨ = inv(Ψ) : invΨ = Array(Float64,1,1)
 		if >(NumDeriv,0)
 			∂z∂x, ∂2z∂x2 = ∂z∂x_fun(sg) 
@@ -291,9 +355,10 @@ type SmolyakBasis
 		new(sg.D, sg.µ, NGP, NBF, Ψ, invΨ, ∂Ψ∂z, ∂2Ψ∂z2, ∂z∂x, ∂2z∂x2, CalcInv, NumDeriv, SpOut)
 	end
 	
-	function SmolyakBasis(X::Array{Float64,2}, sg::SmolyakGrid, CalcInv::Bool=false, NumDeriv::Int64=1, SpOut::Bool=false)
+	function SmolyakBasis(X::Vector{Float64}, sg::SmolyakGrid, CalcInv::Bool=false, NumDeriv::Int64=1, SpOut::Bool=false)
 		Ψ, ∂Ψ∂z, ∂2Ψ∂z2 = Ψ_fun(X, sg, NumDeriv, SpOut)
-		NGP, NBF = size(Ψ)
+		NBF = length(Ψ)
+		NGP = 1
 		is(CalcInv,true) ? invΨ = pinv(Ψ) : invΨ = Array(Float64,1,1)	
 		if >(NumDeriv,0)
 			∂z∂x, ∂2z∂x2 = ∂z∂x_fun(sg) 
@@ -301,7 +366,20 @@ type SmolyakBasis
 			∂z∂x = Array(Float64,1)
 			∂2z∂x2 = Array(Float64,1,1) 
 		end		
-		new(sg.D, sg.µ, NGP, NBF, Ψ, pinvΨ, ∂Ψ∂z, ∂2Ψ∂z2, ∂z∂x, ∂2z∂x2, CalcInv, NumDeriv, SpOut )	
+		new(sg.D, sg.µ, NGP, NBF, Ψ, invΨ, ∂Ψ∂z, ∂2Ψ∂z2, ∂z∂x, ∂2z∂x2, CalcInv, NumDeriv, SpOut )	
+	end
+
+	function SmolyakBasis(X::Array{Float64,2}, sg::SmolyakGrid, CalcInv::Bool=false, NumDeriv::Int64=1, SpOut::Bool=false)
+		Ψ, ∂Ψ∂z, ∂2Ψ∂z2 = Ψ_fun(X, sg, NumDeriv, SpOut)
+		NBF, NGP = size(Ψ)
+		is(CalcInv,true) ? invΨ = pinv(Ψ) : invΨ = Array(Float64,1,1)	
+		if >(NumDeriv,0)
+			∂z∂x, ∂2z∂x2 = ∂z∂x_fun(sg) 
+		else 
+			∂z∂x = Array(Float64,1)
+			∂2z∂x2 = Array(Float64,1,1) 
+		end		
+		new(sg.D, sg.µ, NGP, NBF, Ψ, invΨ, ∂Ψ∂z, ∂2Ψ∂z2, ∂z∂x, ∂2z∂x2, CalcInv, NumDeriv, SpOut )	
 	end
 	
 end
@@ -316,68 +394,6 @@ function show(io::IO, sb::SmolyakBasis)
 	if ==(sb.NumDeriv,2) msg *= "\t- with ∂Ψ∂z & ∂2Ψ∂z2\n" end
 	print(io, msg)
 end
-
-
-function new_sb_Ψ!(sb::SmolyakBasis, sg::SmolyakGrid)
-	M = maximum(sg.Binds)+1
-	x2z!(sg) 			# Update the zGrid using new X's
-	if ==(sb.NumDeriv,2)
-		sb.Ψ = ones(Float64, sb.NumBasisFun, sg.NumGrdPts)
-		sb.∂Ψ∂z = ones(Float64, sb.NumBasisFun, sg.NumGrdPts, sg.D)
-		sb.∂2Ψ∂z2 = ones(Float64, sb.NumBasisFun, sg.NumGrdPts, sg.D, sg.D)
-		T = Array(Float64, sg.D, M)
-		∂T = similar(T)
-		∂2T = similar(T)
-		for i in 1:sg.NumGrdPts
-			Tn!(T, ∂T, ∂2T, sg.zGrid[:,i], M, sg.D)
-			for d in 1:sg.D, p in 1:sb.NumBasisFun
-				Ψ!(sb.Ψ, T, i, p, d, sg)
-				∂Ψ∂z!(sb.∂Ψ∂z, T, ∂T, i, p, d, sg)
-				∂2Ψ∂z2!(sb.∂2Ψ∂z2, T, ∂T, ∂2T, i, p, d, sg)
-			end
-		end
-		if is(sb.SpOut,true) 								# Return Sparse Basis Matrix
-			Z1idx = sub2ind(size(sb.∂Ψ∂z),findn(sb.∂Ψ∂z)...)
-			Z2idx = sub2ind(size(sb.∂2Ψ∂z2),findn(sb.∂2Ψ∂z2)...) 
-			sb.∂Ψ∂z = sparsevec(Z1idx,sb.∂Ψ∂z[Z1idx])
-			sb.∂2Ψ∂z2 = sparsevec(Z2idx,sb.∂2Ψ∂z2[Z2idx])
-		end
-	elseif ==(sb.NumDeriv,1)
-		sb.Ψ = ones(Float64, sb.NumBasisFun, sg.NumGrdPts)
-		sb.∂Ψ∂z = ones(Float64, sb.NumBasisFun, sg.NumGrdPts, sg.D)
-		T = Array(Float64, sg.D, M)
-		∂T = similar(T)
-		for i in 1:sg.NumGrdPts
-			Tn!(T, ∂T, sg.zGrid[:,i], M, sg.D)
-			for d in 1:sg.D, p in 1:sb.NumBasisFun
-				Ψ!(sb.Ψ, T, i, p, d, sg)
-				∂Ψ∂z!(sb.∂Ψ∂z, T, ∂T, i, p, d, sg)
-			end
-		end
-		sb.∂2Ψ∂z2 = Array(Float64,1,1,1,1)
-		if is(sb.SpOut,true) 								# Return Sparse Basis Matrix
-			Z1idx = sub2ind(size(sb.∂Ψ∂z),findn(sb.∂Ψ∂z)...)
-			Z2idx = sub2ind(size(sb.∂2Ψ∂z2),findn(sb.∂2Ψ∂z2)...) 
-			sb.∂Ψ∂z = sparsevec(Z1idx,sb.∂Ψ∂z[Z1idx])
-			sb.∂2Ψ∂z2 = Array(Float64,1,1,1,1)
-		end
-	elseif ==(sb.NumDeriv,0) 
-		sb.Ψ = ones(Float64, sb.NumBasisFun, sg.NumGrdPts)
-		T = Array(Float64, sg.D, M)
-		for i in 1:sg.NumGrdPts
-			Tn!(T, sg.zGrid[:,i], M, sg.D)
-			for d in 1:sg.D, p in 1:sb.NumBasisFun
-				Ψ!(sb.Ψ, T, i, p, d, sg)
-			end
-		end
-		sb.∂Ψ∂z = Array(Float64,1,1,1)
-		sb.∂2Ψ∂z2 = Array(Float64,1,1,1,1)
-	else
-		print("Warning: Number of derivatives can only be 0, 1, or 2")
-	end
-	is(sb.CalcInv,true) ? sb.invΨ = inv(sb.Ψ) : nothing
-end
-
 
 function sparse2full(sb::SmolyakBasis)
 	# Automatically Return NumDeriv in sb::SmolyakBasis 
