@@ -90,7 +90,7 @@ end
 
 function ∂2Ψ∂z2!(∂2Ψ∂z2::Array{Float64,4}, T::Array{Float64,2}, ∂T::Array{Float64,2}, ∂2T::Array{Float64,2},
 					 GridIdx::Int64, BFIdx::Int64, DimIdx::Int64, sg::SmolyakGrid)
-	ChebIdx = sg.Binds[BFIdx,DimIdx]+1
+	ChebIdx = sg.Binds[DimIdx,BFIdx]+1
 	for j in 1:sg.D, i in 1:sg.D
 		if DimIdx==i==j
 			∂2Ψ∂z2[BFIdx,GridIdx,i,j] *= ∂2T[DimIdx,ChebIdx]

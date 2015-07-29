@@ -1,32 +1,31 @@
 # TEST OF DERIVATIVES USING D = 2,  µ = 1 if using [-1,1]^2 
-using Smolyak	
+using Smolyak, PyPlot
 D = 2
 µ = 1
-lb = -2ones(D)
-ub = 2ones(D)
-sg = SmolyakGrid(D,µ,lb,ub)
+sg = SmolyakGrid(D,µ)
 NumDeriv = 2
-sb = SmolyakBasis(sg,NumDeriv)
-==(sg.D,2) ? scatter(sg.zGrid[:,1],sg.zGrid[:,2]) : nothing
+sb = SmolyakBasis(sg,false, NumDeriv)
 
 #= Analytical answers =#
-x = sg.zGrid[:,1];
-y = sg.zGrid[:,2];
-psi = [ones(sg.NumGrdPts) x 2x.^2-1 y 2y.^2-1];
-∂psi∂x  = [zeros(sg.NumGrdPts) ones(sg.NumGrdPts) 4x zeros(sg.NumGrdPts) zeros(sg.NumGrdPts)];
-∂psi∂y  = [zeros(sg.NumGrdPts) zeros(sg.NumGrdPts) zeros(sg.NumGrdPts) ones(sg.NumGrdPts) 4y];
-∂2psi∂x2 = [zeros(sg.NumGrdPts) zeros(sg.NumGrdPts) 4ones(sg.NumGrdPts) zeros(sg.NumGrdPts) zeros(sg.NumGrdPts)];
-∂2psi∂y2 = [zeros(sg.NumGrdPts) zeros(sg.NumGrdPts) zeros(sg.NumGrdPts) zeros(sg.NumGrdPts) 4ones(sg.NumGrdPts)];
-∂2psi∂x∂y = zeros(sg.NumGrdPts,sg.NumGrdPts);
+z1 = sg.zGrid[1,:];
+z2 = sg.zGrid[2,:];
+==(sg.D,2) ? scatter(z1,z2) : nothing
+
+Ψ = [ones(1,sg.NumGrdPts), z1, 2z1.^2-1, z2, 2z2.^2-1];
+∂Ψ∂z1  = [zeros(1,sg.NumGrdPts), ones(1,sg.NumGrdPts), 4z1, zeros(1,sg.NumGrdPts), zeros(1,sg.NumGrdPts)];
+∂Ψ∂z2  = [zeros(1,sg.NumGrdPts), zeros(1,sg.NumGrdPts), zeros(1,sg.NumGrdPts), ones(1,sg.NumGrdPts), 4z2];
+∂2Ψ∂z12 = [zeros(1,sg.NumGrdPts), zeros(1,sg.NumGrdPts), 4ones(1,sg.NumGrdPts), zeros(1,sg.NumGrdPts), zeros(1,sg.NumGrdPts)];
+∂2Ψ∂z22 = [zeros(1,sg.NumGrdPts), zeros(1,sg.NumGrdPts), zeros(1,sg.NumGrdPts), zeros(1,sg.NumGrdPts), 4ones(1,sg.NumGrdPts)];
+∂2Ψ∂z1∂z2 = zeros(sg.NumGrdPts,sg.NumGrdPts);
 
 # Tests
 Passed = 1
-Passed *= <=(maximum(abs2(psi - sb.Psi)),1e-14)
-Passed *= <=(maximum(abs2(∂psi∂x - sb.∂Psi∂x[:,:,1])),1e-14)
-Passed *= <=(maximum(abs2(∂psi∂y - sb.∂Psi∂x[:,:,2])),1e-14)
-Passed *= <=(maximum(abs2(∂2psi∂x2 - sb.∂2Psi∂x2[:,:,1,1])),1e-14)
-Passed *= <=(maximum(abs2(∂2psi∂y2 - sb.∂2Psi∂x2[:,:,2,2])),1e-14)
-Passed *= <=(maximum(abs2(∂2psi∂x∂y - sb.∂2Psi∂x2[:,:,1,2])),1e-14)
-Passed *= <=(maximum(abs2(∂2psi∂x∂y - sb.∂2Psi∂x2[:,:,2,1])),1e-14)
+Passed *= <=(maximum(abs2(Ψ - sb.Ψ)),1e-14)
+Passed *= <=(maximum(abs2(∂Ψ∂z1 - sb.∂Ψ∂z[:,:,1])),1e-14)
+Passed *= <=(maximum(abs2(∂Ψ∂z2 - sb.∂Ψ∂z[:,:,2])),1e-14)
+Passed *= <=(maximum(abs2(∂2Ψ∂z12 - sb.∂2Ψ∂z2[:,:,1,1])),1e-14)
+Passed *= <=(maximum(abs2(∂2Ψ∂z22 - sb.∂2Ψ∂z2[:,:,2,2])),1e-14)
+Passed *= <=(maximum(abs2(∂2Ψ∂z1∂z2 - sb.∂2Ψ∂z2[:,:,1,2])),1e-14)
+Passed *= <=(maximum(abs2(∂2Ψ∂z1∂z2 - sb.∂2Ψ∂z2[:,:,2,1])),1e-14)
 
 ==(Passed,1) ? print("Passed the tests") : print("Problem: Didn't pass test")
