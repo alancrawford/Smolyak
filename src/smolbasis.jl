@@ -345,7 +345,7 @@ type SmolyakBasis
 	function SmolyakBasis(sg::SmolyakGrid, CalcInv::Bool=false, NumDeriv::Int64=1, SpOut::Bool=false)
 		Ψ, ∂Ψ∂z, ∂2Ψ∂z2 = Ψ_fun(sg, NumDeriv, SpOut)
 		NBF, NGP = size(Ψ)
-		is(CalcInv,true) ? invΨ = inv(Ψ) : invΨ = Array(Float64,1,1)
+		is(CalcInv,true) ? invΨ = inv(Ψ') : invΨ = Array(Float64,1,1)
 		if >(NumDeriv,0)
 			∂z∂x, ∂2z∂x2 = ∂z∂x_fun(sg) 
 		else 
@@ -359,7 +359,7 @@ type SmolyakBasis
 		Ψ, ∂Ψ∂z, ∂2Ψ∂z2 = Ψ_fun(X, sg, NumDeriv, SpOut)
 		NBF = length(Ψ)
 		NGP = 1
-		is(CalcInv,true) ? invΨ = pinv(Ψ) : invΨ = Array(Float64,1,1)	
+		is(CalcInv,true) ? invΨ = pinv(Ψ') : invΨ = Array(Float64,1,1)	
 		if >(NumDeriv,0)
 			∂z∂x, ∂2z∂x2 = ∂z∂x_fun(sg) 
 		else 
@@ -372,7 +372,7 @@ type SmolyakBasis
 	function SmolyakBasis(X::Array{Float64,2}, sg::SmolyakGrid, CalcInv::Bool=false, NumDeriv::Int64=1, SpOut::Bool=false)
 		Ψ, ∂Ψ∂z, ∂2Ψ∂z2 = Ψ_fun(X, sg, NumDeriv, SpOut)
 		NBF, NGP = size(Ψ)
-		is(CalcInv,true) ? invΨ = pinv(Ψ) : invΨ = Array(Float64,1,1)	
+		is(CalcInv,true) ? invΨ = pinv(Ψ') : invΨ = Array(Float64,1,1)	
 		if >(NumDeriv,0)
 			∂z∂x, ∂2z∂x2 = ∂z∂x_fun(sg) 
 		else 
