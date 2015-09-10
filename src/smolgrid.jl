@@ -199,15 +199,15 @@ end
 	- See ECONFORGE/Smolyak for unadjusted code =#
 
 function z2x(zpts::VecOrArray,lb::Vector{Float64},ub::Vector{Float64})
-	centers = lb + (ub - lb)./2
-    radii = (ub - lb)./2
+	radii = (ub - lb)/2
+	centers = lb + radii
     return centers .+ zpts.*radii
 end
 
 function x2z(xpts::VecOrArray,lb::Vector{Float64},ub::Vector{Float64})
- 	centers = lb + (ub - lb)./2
-    radii = (ub - lb)./2
-    return (xpts .- centers)./radii
+ 	radii = (ub - lb)/2
+ 	centers = lb + radii
+    return (xpts - centers )./radii
 end
 
 function z2x!(sg::SmolyakGrid)
