@@ -1,31 +1,33 @@
 # TEST OF DERIVATIVES USING D = 2,  µ = 1 if using [-1,1]^2 
-using Smolyak, PyPlot
+using Smolyak
 D = 2
 µ = 1
 sg = SmolyakGrid(D,µ)
 NumDeriv = 2
-sb = SmolyakBasis(sg,false, NumDeriv)
+sb = SmolyakBasis(sg,NumDeriv)
+makeBF!(sb)
+coef = rand(sb.NumBF)
+sp = SmolyakPoly(sb,coef)
 
 #= Analytical answers =#
 z1 = sg.zGrid[1,:];
 z2 = sg.zGrid[2,:];
-==(sg.D,2) ? scatter(z1,z2) : nothing
 
-Ψ = [ones(1,sg.NumGrdPts), z1, 2z1.^2-1, z2, 2z2.^2-1];
-∂Ψ∂z1  = [zeros(1,sg.NumGrdPts), ones(1,sg.NumGrdPts), 4z1, zeros(1,sg.NumGrdPts), zeros(1,sg.NumGrdPts)];
-∂Ψ∂z2  = [zeros(1,sg.NumGrdPts), zeros(1,sg.NumGrdPts), zeros(1,sg.NumGrdPts), ones(1,sg.NumGrdPts), 4z2];
-∂2Ψ∂z12 = [zeros(1,sg.NumGrdPts), zeros(1,sg.NumGrdPts), 4ones(1,sg.NumGrdPts), zeros(1,sg.NumGrdPts), zeros(1,sg.NumGrdPts)];
-∂2Ψ∂z22 = [zeros(1,sg.NumGrdPts), zeros(1,sg.NumGrdPts), zeros(1,sg.NumGrdPts), zeros(1,sg.NumGrdPts), 4ones(1,sg.NumGrdPts)];
-∂2Ψ∂z1∂z2 = zeros(sg.NumGrdPts,sg.NumGrdPts);
+BF = [ones(1,sg.NumGrdPts), z1, 2z1.^2-1, z2, 2z2.^2-1];
+dBFdz1  = [zeros(1,sg.NumGrdPts), ones(1,sg.NumGrdPts), 4z1, zeros(1,sg.NumGrdPts), zeros(1,sg.NumGrdPts)];
+dBFdz2  = [zeros(1,sg.NumGrdPts), zeros(1,sg.NumGrdPts), zeros(1,sg.NumGrdPts), ones(1,sg.NumGrdPts), 4z2];
+d2BFdz12 = [zeros(1,sg.NumGrdPts), zeros(1,sg.NumGrdPts), 4ones(1,sg.NumGrdPts), zeros(1,sg.NumGrdPts), zeros(1,sg.NumGrdPts)];
+d2BFdz22 = [zeros(1,sg.NumGrdPts), zeros(1,sg.NumGrdPts), zeros(1,sg.NumGrdPts), zeros(1,sg.NumGrdPts), 4ones(1,sg.NumGrdPts)];
+d2BFdz1dz2 = zeros(sg.NumGrdPts,sg.NumGrdPts);
 
 # Tests
 Passed = 1
-Passed *= <=(maximum(abs2(Ψ - sb.Ψ)),1e-14)
-Passed *= <=(maximum(abs2(∂Ψ∂z1 - sb.∂Ψ∂z[:,:,1])),1e-14)
-Passed *= <=(maximum(abs2(∂Ψ∂z2 - sb.∂Ψ∂z[:,:,2])),1e-14)
-Passed *= <=(maximum(abs2(∂2Ψ∂z12 - sb.∂2Ψ∂z2[:,:,1,1])),1e-14)
-Passed *= <=(maximum(abs2(∂2Ψ∂z22 - sb.∂2Ψ∂z2[:,:,2,2])),1e-14)
-Passed *= <=(maximum(abs2(∂2Ψ∂z1∂z2 - sb.∂2Ψ∂z2[:,:,1,2])),1e-14)
-Passed *= <=(maximum(abs2(∂2Ψ∂z1∂z2 - sb.∂2Ψ∂z2[:,:,2,1])),1e-14)
+Passed *= <=(maximum(abs2(BF - sb.BF)),1e-14)
+Passed *= <=(maximum(abs2(dBFdz1 - sb.dBFdz[:,:,1])),1e-14)
+Passed *= <=(maximum(abs2(dBFdz2 - sb.dBFdz[:,:,2])),1e-14)
+Passed *= <=(maximum(abs2(d2BFdz12 - sb.d2BFdz2[:,:,1,1])),1e-14)
+Passed *= <=(maximum(abs2(d2BFdz22 - sb.d2BFdz2[:,:,2,2])),1e-14)
+Passed *= <=(maximum(abs2(d2BFdz1dz2 - sb.d2BFdz2[:,:,1,2])),1e-14)
+Passed *= <=(maximum(abs2(d2BFdz1dz2 - sb.d2BFdz2[:,:,2,1])),1e-14)
 
 ==(Passed,1) ? print("Passed the tests") : print("Problem: Didn't pass test")

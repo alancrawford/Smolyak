@@ -1,19 +1,16 @@
 #= 
 	-------------------------------------
-	Smolyak Grid for Julia version 0.3.7  
+	Smolyak Grid for Julia version 0.3.11  
 	-------------------------------------
 
 This file contains code to define Smolyak Grid type. Both Anisotrophic and 
 Isotrophic Grids are supported and they are constructed efficiently 
 following the methodology outlined in JMMV (2014). The code is designed on 
-latest stable Julia version: 0.3.7.
+latest stable Julia version: 0.3.11.
 
 Key Refs: JMMV (2014), Burkhardt (2012), github: ECONFORGE/Smolyak
 
 =#
-
-IntOrVec = Union(Int64,Vector{Int64},Float64,Vector{Float64})
-VecOrArray = Union(Vector{Float64},Array{Float64,2}) 
 
 #= ***************************************** =#
 #= Sub Funs called when creating SmolyakGrid =#
@@ -60,35 +57,35 @@ end
 #= Funs used to create SmolyakGrid =#
 #= ******************************* =#
 
-function µfun(d::Int64,µ::IntOrVec)
-	if isa(µ,Int64)
-		maxµ = µ
-		µbar = tuple([µ*ones(Int64,d)]...)
+function mufun(d::Int64,mu::ScalarOrVec{Int64})
+	if isa(mu,Int64)
+		maxmu = mu
+		mubar = tuple([mu*ones(Int64,d)]...)
 	else
-		maxµ = 0
-		for m = 1:length(µ)
-			maxµ = max(maxµ,µ[m])
+		maxmu = 0
+		for m = 1:length(mu)
+			maxmu = max(maxmu,mu[m])
 		end
-		µbar = tuple(µ...) 
+		mubar = tuple(mu...) 
 	end
-	@assert(d == length(µbar),"\n\tError: Dimension mismatch: \n
-								\tNumber of dimensions!= length of precision index (µ)\n")
-	return µbar , maxµ
+	@assert(d == length(mubar),"\n\tError: Dimension mismatch: \n
+								\tNumber of dimensions!= length of precision index (mu)\n")
+	return mubar , maxmu
 end
 
 # Calculate Number of Grid Points & Construct Indices of Smolyak Grid
-@ngenerate N (Int64,Array{Array{Int64,1},1}) function SmolIdx(maxµ::Int64,µ::NTuple{N,Int64}...)
-	µbar = Int64[]
+@ngenerate N (Int64,Array{Array{Int64,1},1}) function SmolIdx(maxmu::Int64,mu::NTuple{N,Int64}...)
+	mubar = Int64[]
 	ibar = Int64[]
 	n = Int64[]
 	NumGridPts = 0
 	sum_i = 0 
 	iList=Array{Int64,1}[]	
-	@nexprs N j-> push!(µbar,µ_j)
-	@nloops N i j->1:µbar[j]+1 begin
+	@nexprs N j-> push!(mubar,mu_j)
+	@nloops N i j->1:mubar[j]+1 begin
 		@nexprs N j -> push!(n,newpts(i_j))
 		@nexprs N j -> sum_i += i_j 
-		if sum_i > N + maxµ
+		if sum_i > N + maxmu
 			ibar = Int64[]
 			n = Int64[]
 			sum_i=0
@@ -105,7 +102,7 @@ end
 end
 
 # Constructs the Smolyak Grid
-@ngenerate N (Array{Float64,2}) function Make_Grid(NGP::Int64,inds::Array{Array{Int64,1},1},µ::NTuple{N,Int64}...)
+@ngenerate N (Array{Float64,2}) function Make_Grid(NGP::Int64,inds::Array{Array{Int64,1},1},mu::NTuple{N,Int64}...)
 	H = Array(Float64,N, NGP)
 	zH = 0
 	for i = 1:length(inds)
@@ -118,7 +115,7 @@ end
 end
 
 #= ******************************************* =#
-#= Create Basis Funs Indices SmolyakGrid(d,µ) =#
+#= Create Basis Funs Indices SmolyakGrid(d,mu) =#
 #= ******************************************* =#
 
 # Disjoint sets that define indexes for creation of Basis Indices
@@ -136,8 +133,8 @@ function A_pidx(ibar::Int64)
 	return A
 end
 
-@ngenerate N Array{Int64,2} function BasisIdx(NGP::Int64,GridIdx::Array{Array{Int64,1},1},maxµ::Int64,µ::NTuple{N,Int64}...)
-	A = A_pidx(maxµ+1)
+@ngenerate N Array{Int64,2} function BasisIdx(NGP::Int64,GridIdx::Array{Array{Int64,1},1},maxmu::Int64,mu::NTuple{N,Int64}...)
+	A = A_pidx(maxmu+1)
 	T = Array(Int64,N,NGP)
 	zT = 0
 	for i = 1:length(GridIdx)
@@ -155,15 +152,15 @@ end
 
 type SmolyakGrid
 	D 			::	Int64				# Dimensions
-	µ 			::	IntOrVec			# Index of µ
+	mu 			::	ScalarOrVec{Int64}	# Index of mu
 	NumGrdPts 	::	Int64				# Number of Grid Points
 	lb 			::	Vector{Float64}		# Lower Bounds of dimensions
 	ub 			::	Vector{Float64}		# Upper Bounds of dimensions
 	zGrid 		::	Array{Float64,2}	# Smolyak Grid on z = [-1,1]
 	xGrid 		::	Array{Float64,2}	# Smolyak Grid on original domain x in [lb,ub]
-	Binds    	::  Array{Int64,2}		# Input to construct Basis Funs for set of grid points -> Will depend on µ.
+	Binds    	::  Array{Int64,2}		# Input to construct Basis Funs for set of grid points -> Will depend on mu.
 
-	function SmolyakGrid(	D::Int64, µ::IntOrVec,
+	function SmolyakGrid(	D::Int64, mu::ScalarOrVec{Int64},
 							lb::Vector{Float64}=-1*ones(Float64,D), ub::Vector{Float64}=ones(Float64,D))
 		
 		#= z in [-1,1]^D and x[d] in [lb[d],ub[d]] for d = 1,...,D =#
@@ -173,24 +170,24 @@ type SmolyakGrid
 		#= @assert(.<=(lb,ub),
 				"\n\tError: lb >= ub") =#
 
-		µbar, maxµ = µfun(D,µ) 
-		NumGrdPts, Ginds = SmolIdx(maxµ,µbar...)
-		zGrid = Make_Grid(NumGrdPts,Ginds,µbar...)	
+		mubar, maxmu = mufun(D,mu) 
+		NumGrdPts, Ginds = SmolIdx(maxmu,mubar...)
+		zGrid = Make_Grid(NumGrdPts,Ginds,mubar...)	
 		xGrid  = z2x(zGrid,lb,ub)
-		Binds = BasisIdx(NumGrdPts,Ginds,maxµ,µbar...)
+		Binds = BasisIdx(NumGrdPts,Ginds,maxmu,mubar...)
 
-		new(D, µ, NumGrdPts, lb, ub, zGrid, xGrid, Binds)
+		new(D, mu, NumGrdPts, lb, ub, zGrid, xGrid, Binds)
 	end
 end
 
 function show(io::IO, sg::SmolyakGrid)
-	if !=(minimum(sg.µ),maximum(sg.µ))
-			µ_print = strip(string(sg.µ))
+	if !=(minimum(sg.mu),maximum(sg.mu))
+			mu_print = strip(string(sg.mu))
 			msg = "Anisotrophic Smolyak Grid:\n"
-			msg *= "\tD: $(sg.D)\n\tµ: $(µ_print)\n\tNum Grid Points: $(sg.NumGrdPts)"
+			msg *= "\tD: $(sg.D)\n\tmu: $(mu_print)\n\tNum Grid Points: $(sg.NumGrdPts)"
 	else
 		msg = "Isotrophic Smolyak Grid:\n"
-		msg *= "\tD: $(sg.D)\n\tµ: $(sg.µ[1])\n\tNum Grid Points: $(sg.NumGrdPts)"
+		msg *= "\tD: $(sg.D)\n\tmu: $(sg.mu[1])\n\tNum Grid Points: $(sg.NumGrdPts)"
 	end
 	print(io, msg)
 end
@@ -198,13 +195,13 @@ end
 #= Functions switching between z in [-1,1] and x in [lb,ub] 
 	- See ECONFORGE/Smolyak for unadjusted code =#
 
-function z2x(zpts::VecOrArray,lb::Vector{Float64},ub::Vector{Float64})
+function z2x(zpts::VecOrArray{Float64},lb::Vector{Float64},ub::Vector{Float64})
 	centers = lb + (ub - lb)./2
     radii = (ub - lb)./2
     return centers .+ zpts.*radii
 end
 
-function x2z(xpts::VecOrArray,lb::Vector{Float64},ub::Vector{Float64})
+function x2z(xpts::VecOrArray{Float64},lb::Vector{Float64},ub::Vector{Float64})
  	centers = lb + (ub - lb)./2
     radii = (ub - lb)./2
     return (xpts .- centers)./radii
