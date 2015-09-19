@@ -1,8 +1,8 @@
 # TEST OF DERIVATIVES USING D = 2,  µ = 1 if using [-1,1]^2 
 using Smolyak
 D = 2
-µ = 1
-sg = SmolyakGrid(D,µ)
+mu = 1
+sg = SmolyakGrid(D,mu)
 NumDeriv = 2
 sb = SmolyakBasis(sg,NumDeriv)
 makeBF!(sb)
@@ -23,11 +23,11 @@ d2BFdz1dz2 = zeros(sg.NumGrdPts,sg.NumGrdPts);
 # Tests
 Passed = 1
 Passed *= <=(maximum(abs2(BF - sb.BF)),1e-14)
-Passed *= <=(maximum(abs2(dBFdz1 - sb.dBFdz[:,:,1])),1e-14)
-Passed *= <=(maximum(abs2(dBFdz2 - sb.dBFdz[:,:,2])),1e-14)
-Passed *= <=(maximum(abs2(d2BFdz12 - sb.d2BFdz2[:,:,1,1])),1e-14)
-Passed *= <=(maximum(abs2(d2BFdz22 - sb.d2BFdz2[:,:,2,2])),1e-14)
-Passed *= <=(maximum(abs2(d2BFdz1dz2 - sb.d2BFdz2[:,:,1,2])),1e-14)
-Passed *= <=(maximum(abs2(d2BFdz1dz2 - sb.d2BFdz2[:,:,2,1])),1e-14)
+Passed *= <=(maximum(abs2(dBFdz1 - sb.dBFdz[1])),1e-14)
+Passed *= <=(maximum(abs2(dBFdz2 - sb.dBFdz[2])),1e-14)
+Passed *= <=(maximum(abs2(d2BFdz12 - sb.d2BFdz2[1,1])),1e-14)
+Passed *= <=(maximum(abs2(d2BFdz22 - sb.d2BFdz2[2,2])),1e-14)
+Passed *= <=(maximum(abs2(d2BFdz1dz2 - sb.d2BFdz2[1,2])),1e-14)
+Passed *= <=(maximum(abs2(d2BFdz1dz2 - sb.d2BFdz2[2,1])),1e-14)
 
 ==(Passed,1) ? print("Passed the tests") : print("Problem: Didn't pass test")

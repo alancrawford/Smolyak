@@ -1,14 +1,14 @@
 #= 
 	-----------------------------------------------------------------
-	Smolyak Basis Functions on a Smolyak Grid for Julia version 0.3.7  
+	Smolyak Basis Functions on a Smolyak Grid for Julia version 0.3.11  
 	-----------------------------------------------------------------
 
 This file contains code to define Smolyak Constructtion of Chebyshev
 basis functions. It is compatible with both Anisotrophic and Isotrophic 
 Grids and are constructed efficiently following the methodology outlined
- in JMMV (2014). The code is designed on latest stable Julia version: v0.4.
+ in JMMV (2014). The code is designed on latest stable Julia version: v0.3.11.
 
-Key Refs: JMMV (2014), Burkhardt (2012), github: ECONFORGE/Smolyak
+Key Refs: JMMV (2014), Burkhardt (2012)
 
 =#
 
@@ -54,10 +54,10 @@ type SmolyakBasis
 		d2T = similar(T)
 		
 		# For Basis Functions and transformation back: Allocate memory for BF, pinvBF, and derivatives -> then makeBF!(sb)
-		BF = [1.0 for i1 in 1:NumBF, i2 in 1:sg.NumGrdPts]
+		BF = ones(Float64,NumBF,sg.NumGrdPts)
 		pinvBF = similar(BF)
-		dBFdz = [1.0 for i1 in 1:NumBF, i2 in 1:sg.NumGrdPts, i3 in 1:sg.D] 
-		d2BFdz2 = [1.0 for i1 in 1:NumBF, i2 in 1:sg.NumGrdPts, i3 in 1:sg.D, i3 in 1:sg.D]
+		dBFdz = [ones(Float64,NumBF,sg.NumGrdPts) for d1 in 1:sg.D] 
+		d2BFdz2 = [ones(Float64,NumBF,sg.NumGrdPts) for d1 in 1:sg.D, d2 in 1:sg.D]
 		dzdx = 2./(sg.ub - sg.lb)
 		d2zdx2 = dzdx*dzdx'
 		dBFdx = similar(dBFdz)
@@ -83,10 +83,10 @@ type SmolyakBasis
 		d2T = similar(T)
 		
 		# For Basis Functions and transformation back: Allocate memory for BF, pinvBF, and derivatives -> then makeBF!(sb)
-		BF = [1.0 for i1 in 1:NumBF, i2 in 1:sg.NumGrdPts]
+		BF = ones(Float64,NumBF,sg.NumGrdPts)
 		pinvBF = similar(BF)
-		dBFdz = [1.0 for i1 in 1:NumBF, i2 in 1:sg.NumGrdPts, i3 in 1:sg.D] 
-		d2BFdz2 = [1.0 for i1 in 1:NumBF, i2 in 1:sg.NumGrdPts, i3 in 1:sg.D, i3 in 1:sg.D]
+		dBFdz = [ones(Float64,NumBF,sg.NumGrdPts) for d1 in 1:sg.D] 
+		d2BFdz2 = [ones(Float64,NumBF,sg.NumGrdPts) for d1 in 1:sg.D, d2 in 1:sg.D]
 		dzdx = 2./(sg.ub - sg.lb)
 		d2zdx2 = dzdx*dzdx'
 		dBFdx = similar(dBFdz)
@@ -105,8 +105,7 @@ end
 
 # This is only for sb.is_sg=false
 function new_x!(sb::SmolyakBasis,x::VecOrArray{Float64})
-	for d in sb.x = copy(x)
-	sb.z = x2z!(sb.x,sb.lb,sb.ub)
+	x2z!(sb.x,sb.z,sb.lb,sb.ub)
 end
 
 # ----------- Chebyshev Polynomials & derivatives ----------- #
@@ -156,28 +155,28 @@ function BF!(sb::SmolyakBasis, BFIdx::Int64, DimIdx::Int64, GridIdx::Int64=1)
 	sb.BF[BFIdx,GridIdx] *= sb.T[DimIdx,sb.Binds[DimIdx,BFIdx]+1]   
 end
 
-# Construct dBFdz! constructs 1st derivative of BF wrt z ∈ [-1,1], the transformed domain of state vector.  
-function dBFdz!(sb::SmolyakBasis, BFIdx::Int64, DimIdx::Int64, GridIdx::Int64=1)
-	for d in 1:sb.D
+# Construct dBFdz! constructs 1st derivative of BF wrt z ∈ [-1,1], the transformed domain of state vector.   for first n arguments of state vector 
+function dBFdz!(sb::SmolyakBasis, BFIdx::Int64, DimIdx::Int64, GridIdx::Int64=1, n::Int64=sb.D)
+	for d in 1:n 		# n specifies 1:n derivatives to avoid unnecessary computations is derivatives of first n arguments required
 		if ==(d,DimIdx)
-			sb.dBFdz[BFIdx,GridIdx,d] *= sb.dT[DimIdx,sb.Binds[DimIdx,BFIdx]+1 ]
+			sb.dBFdz[d][BFIdx,GridIdx] *= sb.dT[DimIdx,sb.Binds[DimIdx,BFIdx]+1 ]
 		else
-			sb.dBFdz[BFIdx,GridIdx,d] *= sb.T[DimIdx,sb.Binds[DimIdx,BFIdx]+1 ]
+			sb.dBFdz[d][BFIdx,GridIdx] *= sb.T[DimIdx,sb.Binds[DimIdx,BFIdx]+1 ]
 		end
 	end
 end
 
-# Construct d2BFdz2! constructs 1st derivative of BF wrt z ∈ [-1,1], the transformed domain of state vector.  
-function d2BFdz2!(sb::SmolyakBasis, BFIdx::Int64, DimIdx::Int64, GridIdx::Int64=1)
-	for j in 1:sb.D, i in 1:sb.D
+# Construct d2BFdz2! constructs 1st derivative of BF wrt z ∈ [-1,1], the transformed domain of state vector for first n arguments of state vector 
+function d2BFdz2!(sb::SmolyakBasis, BFIdx::Int64, DimIdx::Int64, GridIdx::Int64=1, n::Int64=sb.D)
+	for j in 1:n, i in 1:n
 		if DimIdx==i==j
-			sb.d2BFdz2[BFIdx,GridIdx,i,j] *= sb.d2T[DimIdx,sb.Binds[DimIdx,BFIdx]+1]
+			sb.d2BFdz2[i,j][BFIdx,GridIdx] *= sb.d2T[DimIdx,sb.Binds[DimIdx,BFIdx]+1]
 		elseif DimIdx==j!=i  
-			sb.d2BFdz2[BFIdx,GridIdx,i,j] *= sb.dT[DimIdx,sb.Binds[DimIdx,BFIdx]+1]
+			sb.d2BFdz2[i,j][BFIdx,GridIdx] *= sb.dT[DimIdx,sb.Binds[DimIdx,BFIdx]+1]
 		elseif DimIdx==i!=j
-			sb.d2BFdz2[BFIdx,GridIdx,i,j] *= sb.dT[DimIdx,sb.Binds[DimIdx,BFIdx]+1]
+			sb.d2BFdz2[i,j][BFIdx,GridIdx] *= sb.dT[DimIdx,sb.Binds[DimIdx,BFIdx]+1]
 		else
-			sb.d2BFdz2[BFIdx,GridIdx,i,j] *= sb.T[DimIdx,sb.Binds[DimIdx,BFIdx]+1]
+			sb.d2BFdz2[i,j][BFIdx,GridIdx] *= sb.T[DimIdx,sb.Binds[DimIdx,BFIdx]+1]
 		end
 	end
 end
@@ -187,24 +186,21 @@ end
 #= Derivative constant over grid points under linear transform =#
 function dzdx!(sb::SmolyakBasis)
 	for d in 1:sb.D
-		sb.dzdx[d] = 2/(sb.ub[d] - sb.lb[d])
+		sb.dzdx[d] = 2/(sb.ub[d] - sb.lb[d])  
 	end
 end
 
-function d2zdx2!(sb::SmolyakBasis)
-	sb.d2zdx2 = sb.dzdx*sb.dzdx'
-end
-
-# Derivatives of Basis Function with respect to state vector, x
-function dBFdx!(sb::SmolyakBasis)
-	for d in 1:sb.D
-		sb.dBFdx[:,:,d] = sb.dBFdz[:,:,d]'*sb.dzdx[d]
+# 1st derivatives for first n arguments of state vector
+function dBFdx!(sb::SmolyakBasis,n::Int64=sb.D)
+	for d in 1:n
+		sb.dBFdx[d] = sb.dBFdz[d].*sb.dzdx[d] # matrix x scalar
 	end
 end
 
-function d2BFdx2!(sb::SmolyakBasis)
-	for j in 1:sb.D, i in 1:sb.D 
-		sb.d2BFdx2[:,:,i,j] = sb.d2BFdz2[:,:,i,j]'*sb.d2zdx2[i,j]
+# Second derivatives for first n arguments of state vector
+function d2BFdx2!(sb::SmolyakBasis,n::Int64=sb.D)
+	for j in 1:n, i in 1:n 
+		sb.d2BFdx2[i,j] = sb.d2BFdz2[i,j]*sb.dzdx[i]*sb.dzdx[j] # matrix x scalar x scalar
 	end
 end
 
@@ -230,40 +226,40 @@ function check_domain(sb::SmolyakBasis, X::VecOrArray{Float64})
 	end
 end
 
-# This uses the Tn!(sb)
-function makeBF!(sb::SmolyakBasis)
+# Makes Basis Functions with sb.NumDeriv derivatives of the first n arguments of state vector
+function makeBF!(sb::SmolyakBasis,n::Int64=sb.D)
 	if is(sb.NumDeriv,2)
 		sb.BF = ones(Float64, sb.NumBF, sb.NumPts)
-		sb.dBFdz = ones(Float64, sb.NumBF, sb.NumPts, sb.D) 
-		sb.d2BFdz2 = ones(Float64, sb.NumBF, sb.NumPts, sb.D, sb.D)		
+		sb.dBFdz = [ones(Float64,sb.NumBF,sb.NumPts) for d1 in 1:n]  
+		sb.d2BFdz2 = [ones(Float64,sb.NumBF,sb.NumPts) for d1 in 1:n, d2 in 1:n]		
 		for i in 1:sb.NumPts
 			Tn!(sb,i)
-			for d in 1:sb.D, p in 1:sb.NumBF
+			for d in 1:n, p in 1:sb.NumBF
 				BF!(sb, p, d, i)
-				dBFdz!(sb, p, d, i)
-				d2BFdz2!(sb, p, d, i)
+				dBFdz!(sb, p, d, i, n)
+				d2BFdz2!(sb, p, d, i,n) 				# Hess
 			end
 		end
-		dBFdx!(sb)
-		d2BFdx2!(sb)
+		dBFdx!(sb, n)
+		d2BFdx2!(sb, n)
 	elseif is(sb.NumDeriv,1)
 		sb.BF = ones(Float64, sb.NumBF, sb.NumPts)
-		sb.dBFdz = ones(Float64, sb.NumBF, sb.NumPts, sb.D) 
+		sb.dBFdz = [ones(Float64,sb.NumBF,sb.NumPts) for d1 in 1:n] 
 		for i in 1:sb.NumPts
 			Tn!(sb,i)
-			for d in 1:sb.D, p in 1:sb.NumBF
-				BF!(sb, p, d, i)
-				dBFdz!(sb, p, d, i)
+			for d in 1:n, p in 1:sb.NumBF
+				BF!(sb, p, d, i, n)
+				dBFdz!(sb, p, d, i, n) 				# Jac
 			end
 		end
-		dBFdx!(sb)
+		dBFdx!(sb, n)
 	elseif is(sb.NumDeriv,0)
-		sb.BF = ones(Float64, sb.NumBF, sb.NumPts)
-		for i in 1:sb.NumPts
-			Tn!(sb,i)
-			for d in 1:sb.D, p in 1:sb.NumBF
-				BF!(sb, p, d, i)
-			end
+		sb.BF = ones(Float64, sb.NumBF, sb.NumPts) 	# Basis Function Matrix to Fill In
+		for i in 1:sb.NumPts 						# Loop over each grid point.
+			Tn!(sb,i) 								# Evaluate Basis Function Value in each Dimension at each grid point, i: This is D x NumBF 
+			for d in 1:n, p in 1:sb.NumBF 			# Make Basis Function levels & derivatives for grid points i:
+				BF!(sb, p, d, i) 					# Now need to multiply over dimension to create a NBF-vector of Basis Function at grid point i. END OF LOOP → NumBF x NumPts for all grid points. 
+			end 									
 		end
 	else
 		print("Warning: sb.NumDeriv∈{0,1,2}")

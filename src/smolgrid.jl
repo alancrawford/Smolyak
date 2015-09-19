@@ -8,7 +8,7 @@ Isotrophic Grids are supported and they are constructed efficiently
 following the methodology outlined in JMMV (2014). The code is designed on 
 latest stable Julia version: 0.3.11.
 
-Key Refs: JMMV (2014), Burkhardt (2012), github: ECONFORGE/Smolyak
+Key Refs: JMMV (2014), Burkhardt (2012)
 
 =#
 
@@ -192,33 +192,69 @@ function show(io::IO, sg::SmolyakGrid)
 	print(io, msg)
 end
 
-#= Functions switching between z in [-1,1] and x in [lb,ub] 
-	- See ECONFORGE/Smolyak for unadjusted code =#
+#= Functions switching between z in [-1,1] and x in [lb,ub] =#
 
-function z2x(zpts::VecOrArray{Float64},lb::Vector{Float64},ub::Vector{Float64})
-	centers = lb + (ub - lb)./2
-    radii = (ub - lb)./2
-    return centers .+ zpts.*radii
+# Coordinate transform for vector: z→x
+function z2x(z::Vector{Float64},lb::Vector{Float64},ub::Vector{Float64})
+	x = similar(z)
+	for d in 1:length(z)
+		x[d] = 0.5*( ub[d] + lb[d] + z[d]*(ub[d] - lb[d]) )
+	end
+	return x
 end
 
-function x2z(xpts::VecOrArray{Float64},lb::Vector{Float64},ub::Vector{Float64})
- 	centers = lb + (ub - lb)./2
-    radii = (ub - lb)./2
-    return (xpts .- centers)./radii
+# Coordinate transform for Array: z→x
+function z2x(z::Matrix{Float64},lb::Vector{Float64},ub::Vector{Float64})
+	x = similar(z)
+	for n in 1:size(z,2), d in 1:size(z,1)
+		x[d,n] = 0.5*( ub[d] + lb[d] + z[d,n]*(ub[d] - lb[d]) )
+	end
+	return x
 end
 
-function z2x!(sg::SmolyakGrid)
-    sg.xGrid = (sg.lb + (sg.ub - sg.lb)./2) .+ sg.zGrid.*((sg.ub - sg.lb)./2)
+# Coordinate transform for vector: x→z
+function x2z(x::Vector{Float64},lb::Vector{Float64},ub::Vector{Float64})
+	z = similar(x)
+	for d in 1:length(x)
+		z[d] = (2x[d] - ub[d] - lb[d])/(ub[d] - lb[d]) 
+	end
+	return z
 end
 
-function x2z!(sg::SmolyakGrid)
-    sg.zGrid = (sg.xGrid .- (sg.lb + (sg.ub - sg.lb)./2))./((sg.ub - sg.lb)./2)
+# Coordinate transform for vector: x→z
+function x2z(x::Matrix{Float64},lb::Vector{Float64},ub::Vector{Float64})
+	z = similar(x)
+	for n in 1:size(x,2), d in 1:size(x,1)
+		z[d,n] = (2x[d,n] - ub[d] - lb[d])/(ub[d] - lb[d]) 
+	end
+	return z
 end
 
-function xGrid!(sg::SmolyakGrid, NewX::Array{Float64,2}, K::Int64=1, IsIbar::Bool=true)
-	is(IsIbar,true) ?
-		sg.xGrid[1:size(NewX,1),:] = NewX :
-		sg.xGrid[K+1:K+size(NewX,1),:] = NewX
+# In place coordinate transform for vector: z→x
+function z2x!(z::Vector{Float64},x::Vector{Float64},lb::Vector{Float64},ub::Vector{Float64})
+	for d in 1:length(z)
+		x[d] = 0.5*( ub[d] + lb[d] + z[d]*(ub[d] - lb[d]) )
+	end
 end
 
+# In place coordinate transform for Array: z→x
+function z2x!(z::Matrix{Float64},x::Matrix{Float64},lb::Vector{Float64},ub::Vector{Float64})
+	for n in 1:size(z,2), d in 1:size(z,1)
+		x[d,n] = 0.5*( ub[d] + lb[d] + z[d,n]*(ub[d] - lb[d]) )
+	end
+end
+
+# In place coordinate transform for vector: x→z
+function x2z!(x::Vector{Float64},z::Vector{Float64},lb::Vector{Float64},ub::Vector{Float64})
+	for d in 1:length(x)
+		z[d] = (2x[d] - ub[d] - lb[d])/(ub[d] - lb[d]) 
+	end
+end
+
+# In place coordinate transform for vector: x→z
+function x2z!(x::Matrix{Float64},z::Matrix{Float64},lb::Vector{Float64},ub::Vector{Float64})
+	for n in 1:size(x,2), d in 1:size(x,1)
+		z[d,n] = (2x[d,n] - ub[d] - lb[d])/(ub[d] - lb[d]) 
+	end
+end
 
