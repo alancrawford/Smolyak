@@ -103,23 +103,13 @@ end
 
 # -------- New state to evaluate Smolyak Interpolant f(D,mu) where sb.use ------
 
-# New state vector
+# New state vector -> applicable when sb.x is a vector
 function new_x!(sb::SmolyakBasis,x::Vector{Float64})
 	for d in 1:sb.D
 		sb.x[d] = x[d]
 	end
 	x2z!(sb.x,sb.z,sb.lb,sb.ub)
 end
-
-# New state vector: Matrix
-function new_x!(sb::SmolyakBasis,x::Matrix{Float64})
-	sb.x = similar(x)
-	for j in 1:size(x,2), i in 1:sb.D
-		sb.x[i,j] = x[i,j]
-	end
-	x2z!(sb.x,sb.z,sb.lb,sb.ub)
-end
-
 
 # ----------- Chebyshev Polynomials & derivatives ----------- #
 
