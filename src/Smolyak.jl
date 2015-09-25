@@ -14,6 +14,6 @@ include("smolpoly.jl")
 # Make functions defined in the module available =#
 export 	SmolyakGrid, x2z, z2x, x2z!, z2x!,
 		SmolyakBasis, makeBF!, new_x!, 
-		SmolyakPoly, SmolyakPoly!, f!, dfdx!, d2fdx2!, coef!
+		SmolyakPoly, SmolyakPoly!, make_dfdx, make_d2fdx2, f!, dfdx!, d2fdx2!, coef!
 
 end

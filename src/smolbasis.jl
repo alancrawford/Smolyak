@@ -231,6 +231,7 @@ end
 
 # Makes Basis Functions with sb.NumDeriv derivatives of the first n arguments of state vector
 function makeBF!(sb::SmolyakBasis,n::Int64=sb.D)
+	sb.NumPts = size(sb.x,2)
 	if is(sb.NumDeriv,2)
 		sb.BF = ones(Float64, sb.NumBF, sb.NumPts)
 		sb.dBFdz = [ones(Float64,sb.NumBF,sb.NumPts) for d1 in 1:n]  
@@ -251,7 +252,7 @@ function makeBF!(sb::SmolyakBasis,n::Int64=sb.D)
 		for i in 1:sb.NumPts
 			Tn!(sb,i)
 			for d in 1:n, p in 1:sb.NumBF
-				BF!(sb, p, d, i, n)
+				BF!(sb, p, d, i)
 				dBFdz!(sb, p, d, i, n) 				# Jac
 			end
 		end
