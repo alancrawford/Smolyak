@@ -19,9 +19,9 @@ end
 
 type SmolyakPoly
 	coef 	:: Vector{Float64}
-	f  		:: ScalarOrVec{Float64}
-	dfdx	:: Array{Vector{Float64},1}
-	d2fdx2	:: Array{Vector{Float64},2}
+	f  		:: ScalarOrVec{Float64} 	# Value of Interpolant at each of the sb.NumPts
+	dfdx	:: Array{Vector{Float64},1} # Jacobian  where each element a vector of sb.NumPts x 1 wrt [i]
+	d2fdx2	:: Array{Vector{Float64},2} # Hessian where each element a vector of sb.NumPts x 1 for cross derivative [i,j] where i,j ∈{1,...,sb.D} 
 	
 	function SmolyakPoly(sb::SmolyakBasis, coef::Vector, NumDeriv::Int64=sb.NumDeriv)		
 		if is(NumDeriv,2)
@@ -31,11 +31,11 @@ type SmolyakPoly
 		elseif is(NumDeriv,1)
 			f = At_mul_B(sb.BF,coef) 
 			dfdx = make_dfdx(sb,coef)
-			d2fdx2 = [Array(Float64,1) for i in 1:sb.D, j in sb.D]
+			d2fdx2 = [Array(Float64,sb.NumPts) for i in 1:sb.D, j in sb.D]
 		elseif is(NumDeriv,0)
 			f = At_mul_B(sb.BF,coef) 
-			dfdx = [Array(Float64,1) for i in 1:sb.D]
-			d2fdx2 = [Array(Float64,1) for i in 1:sb.D, j in sb.D]
+			dfdx = [Array(Float64,sb.NumPts) for i in 1:sb.D]
+			d2fdx2 = [Array(Float64,sb.NumPts) for i in 1:sb.D, j in sb.D]
 		else
 			println("Require: 0 <= Number of derivatives <= 2")
 		end

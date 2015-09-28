@@ -37,7 +37,7 @@ type SmolyakBasis
 	dBFdz 		:: Array{Matrix{Float64},1} # 1st derivative basis funs wrt z
 	d2BFdz2 	:: Array{Matrix{Float64},2}	# 2nd derivative basis funs wrt z
 	dzdx		:: Vector{Float64} 			# Gradient of transform z→x
-	d2zdx2		:: Array{Float64,2}			# Hessian of transform z→x
+	d2zdx2		:: Vector{Float64}			# Diagonal of Hessian of transform z→x (0 in linear maps, so only useful in nonlinear mapping)
 	dBFdx 		:: Array{Matrix{Float64},1} # 1st derivative basis funs wrt x
 	d2BFdx2 	:: Array{Matrix{Float64},2}	# 2nd derivative basis funs wrt x
 	CalcInv 	:: Bool 					# Whether or not to calculate BF^-1 				
@@ -59,9 +59,9 @@ type SmolyakBasis
 		dBFdz = [ones(Float64,NumBF,sg.NumGrdPts) for d1 in 1:sg.D] 
 		d2BFdz2 = [ones(Float64,NumBF,sg.NumGrdPts) for d1 in 1:sg.D, d2 in 1:sg.D]
 		dzdx = 2./(sg.ub - sg.lb)
-		d2zdx2 = dzdx*dzdx'
-		dBFdx = similar(dBFdz)
-		d2BFdx2 = similar(d2BFdz2)
+		d2zdx2 = zeros(Float64,sg.D) 
+		dBFdx = [ones(Float64,NumBF,sg.NumGrdPts) for d1 in 1:sg.D] 
+		d2BFdx2 = [ones(Float64,NumBF,sg.NumGrdPts) for d1 in 1:sg.D, d2 in 1:sg.D]
 		
 		new(sg.D, sg.mu,  sg.lb, sg.ub, sg.Binds, 
 			sg.NumGrdPts, NumBF, NumDeriv, max_order,
@@ -83,14 +83,14 @@ type SmolyakBasis
 		d2T = similar(T)
 		
 		# For Basis Functions and transformation back: Allocate memory for BF, pinvBF, and derivatives -> then makeBF!(sb)
-		BF = ones(Float64,NumBF,sg.NumGrdPts)
+		BF = ones(Float64,NumBF,NumPts)
 		pinvBF = similar(BF)
-		dBFdz = [ones(Float64,NumBF,sg.NumGrdPts) for d1 in 1:sg.D] 
-		d2BFdz2 = [ones(Float64,NumBF,sg.NumGrdPts) for d1 in 1:sg.D, d2 in 1:sg.D]
+		dBFdz = [ones(Float64,NumBF,NumPts) for d1 in 1:sg.D] 
+		d2BFdz2 = [ones(Float64,NumBF,NumPts) for d1 in 1:sg.D, d2 in 1:sg.D]
 		dzdx = 2./(sg.ub - sg.lb)
-		d2zdx2 = dzdx*dzdx'
-		dBFdx = similar(dBFdz)
-		d2BFdx2 = similar(d2BFdz2)
+		d2zdx2 = zeros(Float64,sg.D) 							# Second derivative just vector because dz_idx_j =0 by construction - even with nonlinear maps
+		dBFdx = [ones(Float64,NumBF,NumPts) for d1 in 1:sg.D] 
+		d2BFdx2 = [ones(Float64,NumBF,NumPts) for d1 in 1:sg.D, d2 in 1:sg.D]
 		
 		new(sg.D, sg.mu,  sg.lb, sg.ub, sg.Binds, 
 			NumPts, NumBF, NumDeriv, max_order,
