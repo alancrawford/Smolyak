@@ -1,92 +1,109 @@
+#= Allocations!
+sp.f = Vector{Float64}(sb.NumPts)
+sp.Grad=Vector{Float64}[ones(Float64,sb.D) for i in 1:sb.NumPts]
+sp.Hess=Matrix{Float64}[ones(Float64,sb.D,sb.D) for i in 1:sb.NumPts]
+
+# Then do looped matrix multiplication
+
+for n in ... and so on... 
+s = 0.0
+for p = 1:sb.NumBF
+	s += sb.d2BFdx[n][i][j][p]*θ[p] 
+end
+sp.Hess[n][i,j] = s
+
+=#
 
 #= Smolyak Interpolant =#
 
-function make_dfdx(sb::SmolyakBasis, coef::Vector{Float64},n::Int64=sb.D)
-	Out = [Array(Float64,sb.D) for i in 1:n]
-	for d in 1:n
-		Out[d] = At_mul_B(sb.dBFdx[d],coef)
-	end
-	return Out
-end
+#= ************************ =#
+#= Smolyak Polynomial type  =#
+#= ************************ =#
 
-function make_d2fdx2(sb::SmolyakBasis, coef::Vector{Float64},n::Int64=sb.D)
-	Out = [Array(Float64,sb.D) for j in 1:n, i in 1:n]
-	for j in 1:n, i in 1:n
-		Out[i,j] = At_mul_B(sb.d2BFdx2[i,j],coef)
-	end
-	return Out
-end
 
 type SmolyakPoly
-	coef 	 :: Vector{Float64}
-	f  		 :: ScalarOrVec{Float64} 		# Value of Interpolant at each of the sb.NumPts
-	dfdx	 :: Array{Vector{Float64},1} 	# Jacobian  where each element a vector of sb.NumPts x 1 wrt [i]
-	d2fdx2	 :: Array{Vector{Float64},2} 	# Hessian where each element a vector of sb.NumPts x 1 for cross derivative [i,j] where i,j ∈{1,...,sb.D} 
-	NumDeriv :: Int64 						# Number of Derivative
-	function SmolyakPoly(sb::SmolyakBasis, coef::Vector, NumDeriv::Int64=sb.NumDeriv)		
-		if is(NumDeriv,2)
-			f = At_mul_B(sb.BF,coef) 
-			dfdx = make_dfdx(sb,coef)
-			d2fdx2 = make_d2fdx2(sb,coef)
-		elseif is(NumDeriv,1)
-			f = At_mul_B(sb.BF,coef) 
-			dfdx = make_dfdx(sb,coef)
-			d2fdx2 = [Array(Float64,sb.NumPts) for i in 1:sb.D, j in sb.D]
-		elseif is(NumDeriv,0)
-			f = At_mul_B(sb.BF,coef) 
-			dfdx = [Array(Float64,sb.NumPts) for i in 1:sb.D]
-			d2fdx2 = [Array(Float64,sb.NumPts) for i in 1:sb.D, j in sb.D]
-		else
-			println("Require: 0,1, or, 2 derivatives")
-		end
-		new(coef, f, dfdx, d2fdx2, NumDeriv)
+	NumPts 		:: Int64 					# Number of points
+	NumCoef 	:: Int64					# Number of elements in Coefficient Vector
+	Coef 	 	:: Vector{Float64} 			# Coefficients of Smplyak Interpolant
+	Value 	 	:: ScalarOrVec{Float64} 	# Value of Interpolant at each of the sb.NumPts
+	Grad		:: AA{Float64} 				# Gradient of Interpolant up to first sp.NumDerivArgs  at grid point n = 1:NumPts
+	Hess	 	:: AM{Float64} 				# Hessian of Interpolant up to first sp.NumDerivArgs at grid point n = 1:NumPts
+	NumDeriv 	:: Int64 					# Number of Derivative
+	NumDerivArgs:: Int64 					# 1 to NumDerivArgs 
+	pinvBFt		:: Matrix{Float64} 			# Transpose of Moore-Penrose Pseudo Inverse of sb.BF (for case where NumPts ≥ NumCoef)
+
+	function SmolyakPoly(sb::SmolyakBasis, Coef::Vector=rand(sb.NumBF), NumDeriv::Int64=sb.NumDeriv, NumDerivArgs::Int64=sb.NumDerivArgs, NumPts::Int64=sb.NumPts)		
+		
+		Value = Vector{Float64}(NumPts)
+		Grad = Vector{Float64}[Array{Float64}(NumDerivArgs) for n in 1:NumPts]
+		Hess = Matrix{Float64}[zeros(NumDerivArgs,NumDerivArgs) for n in 1:NumPts]
+		pinvBF = Array{Float64}(sb.NumBF,NumPts)
+
+		new(NumPts, length(Coef), Coef, Value, Grad, Hess, NumDeriv, NumDerivArgs)
 	end
 
 end
 
-# In place fn Update
-function f!(sp::SmolyakPoly,sb::SmolyakBasis,coef::Vector{Float64}=sp.coef)
-	At_mul_B!(sp.f,sb.BF,coef) 
+# Vector to multiply Basis Function vectors with coefficients
+function VecMult(X::Vector{Float64},Coef::Vector{Float64},s::Float64=0.0)
+	for i in eachindex(X)
+		s += X[i]*Coef[i]
+	end
+	return s
+end
+
+# In place fn value update
+function getValue!(sp::SmolyakPoly,sb::SmolyakBasis,Coef::Vector{Float64}=sp.Coef)
+	for n in 1:sb.NumPts
+		sp.Value[n] = VecMult(sb.BF[n],Coef)
+	end
 end
 
 # In place 1st Derivative Update
-function dfdx!(sp::SmolyakPoly,sb::SmolyakBasis,n::Int64=sb.D,coef::Vector{Float64}=sp.coef)
-	for d in 1:n
-		At_mul_B!(sp.dfdx[d],sb.dBFdx[d],coef)
+function getGrad!(sp::SmolyakPoly,sb::SmolyakBasis,Coef::Vector{Float64}=sp.Coef,N::Int64=sp.NumDerivArgs)
+	for i in 1:N, n in 1:sb.NumPts,
+		sp.Grad[n][i] = VecMult(sb.dBFdx[n][i],Coef)
 	end
 end
 
 # In place 2nd Derivative Update
-function d2fdx2!(sp::SmolyakPoly,sb::SmolyakBasis,n::Int64=sb.D,coef::Vector{Float64}=sp.coef)
-	for j in 1:n, i in 1:n
-		At_mul_B!(sp.d2fdx2[i,j],sb.d2BFdx2[i,j],coef)
+function getHess!(sp::SmolyakPoly,sb::SmolyakBasis,Coef::Vector{Float64}=sp.Coef,N::Int64=sp.NumDerivArgs)
+	for i in 1:N, j in i:N, n in 1:sb.NumPts,
+		k = j-i+1
+		sp.Hess[n][i,j] = VecMult(sb.d2BFdx2[n][i][k],Coef)
+		!=(i,j) ? sp.Hess[n][j,i] = sp.Hess[n][i,j] : nothing
 	end
 end
 
-#= New Coefficient =#
-function coef!(sp::SmolyakPoly, sb::SmolyakBasis, f::Vector{Float64}=sp.f)
-	At_mul_B!(sp.coef,sb.pinvBF,f) 
-end
-
-# Update Smolyak Poly f, dfdx, d2fdx2
-function SmolyakPoly!(sp::SmolyakPoly,sb::SmolyakBasis,n::Int64=sb.D,coef::Vector{Float64}=sp.coef,NumDeriv::Int64=0)
-	if is(NumDeriv,2)
-		f!(sp,sb,coef) 
-		dfdx!(sp,sb,n,coef)
-		d2fdx2!(sp,sb,n,coef)
-	elseif is(NumDeriv,1)
-		f!(sp,sb,coef) 
-		dfdx!(sp,sb,n,coef)
+# Get Inverse of sb.BF to calculate sp.Coef by least squares
+function get_pinvBFt!(sp::SmolyakPoly,sb::SmolyakBasis)
+	if >=(sp.NumPts,sp.NumCoef)
+		BF = Array{Float64}(sp.NumPts,sp.NumCoef)
+		for n in eachindex(sp.Value), p in eachindex(sp.Coef)
+			BF[n,p] = sb.BF[n][p]
+		end
+		return sp.pinvBFt = pinv(BF)' # Transpose because matrix multiplication goes down cols
 	else
-		f!(sp,sb,coef) 
+		println("No single solution to least squares: NumPts < NumCoef. Not Created sp.pinvBFt")
 	end
+end
+
+# Calculate New Coefficient using Least Squares with precalculate Moore-Penrose Pseudo-Inverse - may be more efficient than backslash if pinvBF not changing
+function getCoef!(sp::SmolyakPoly,f::Vector{Float64}=sp.Value)
+	for k in 1:sp.NumCoef
+		s = 0.0
+		for n in 1:sp.NumPts
+		 	s += sp.pinvBFt[n,k]*f[n]
+		end
+		sp.Coef[k] = s
+	end	
 end
 
 function show(io::IO, sp::SmolyakPoly)
-	msg = "\n\tCreated Smolyak Interpolant:\n"
-	if ==(sp.NumDeriv,0) msg *= "\t- No Derivative supplied. Do not call dfdx or d2fdx2.\n" end
-	if ==(sp.NumDeriv,1) msg *= "\t- with dfdx. Do not call d2fdx2.\n" end
-	if ==(sp.NumDeriv,2) msg *= "\t- with dfdx & d2dx2.\n" end
+	msg = "\n\tCreated Smolyak Interpolant on $(sp.NumPts) grid points:\n"
+	if ==(sp.NumDeriv,0) msg *= "\t- No derivatives supplied. Do not call Gradient or Hessian.\n" end
+	if ==(sp.NumDeriv,1) msg *= "\t- with gradient up to first $(sp.NumDerivArgs) arguments of Interpolant. Do not call Hessian.\n" end
+	if ==(sp.NumDeriv,2) msg *= "\t- with gradient & hessian of first $(sp.NumDerivArgs) arguments of Interpolant.\n" end
 	print(io, msg)
 end
 

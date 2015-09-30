@@ -1,17 +1,16 @@
 #= 
 	-----------------------------------------------------------------
-	Smolyak Basis Functions on a Smolyak Grid for Julia version 0.3.11  
+	Smolyak Basis Functions on a Smolyak Grid for Julia Version 0.4  
 	-----------------------------------------------------------------
 
 This file contains code to define Smolyak Constructtion of Chebyshev
 basis functions. It is compatible with both Anisotrophic and Isotrophic 
 Grids and are constructed efficiently following the methodology outlined
- in JMMV (2014). The code is designed on latest stable Julia version: v0.3.11.
+ in JMMV (2014). 
 
 Key Refs: JMMV (2014), Burkhardt (2012)
 
 =#
-
 
 #= ******************* =#
 #= Smolyak Basis type  =#
@@ -22,81 +21,127 @@ type SmolyakBasis
 	mu 			:: ScalarOrVec{Int64}		# Index of mu
 	lb 			:: Vector{Float64}			# Lower Bounds of dimensions
 	ub 			:: Vector{Float64}			# Upper Bounds of dimensions
-	Binds 		:: Array{Int64,2} 			# Basis Function Indices for Smolyak Interpolant, f(D,mu)
+	Binds 		:: AA{Int64} 				# Basis Function Indices for Smolyak Interpolant, f(D,mu)
 	NumPts  	:: Int64					# Number of points in = Num Rows BF
 	NumBF		:: Int64					# Number of basis functions under D, mu = Num Cols BF
 	NumDeriv	:: Int64					# Number of derivatives: {0,1,2}
+	NumDerivArgs:: Int64					# 1st NumDerivArgs used (i.e. 1:NumDerivArgs)
 	max_order	:: Int64 					# Maximum order of polynomial for T
-	x 			:: VecOrArray{Float64} 		# Vector of coordinates at which SB is evaluated 
-	z 			:: VecOrArray{Float64} 		# Transformed vector of coordinates into [-1,1]
-	T 			:: Array{Float64,2} 		# 1-dim Chebyshev basis fn: level
-	dT 			:: Array{Float64,2} 		# 1-dim Chebyshev basis fn: 1st derivative
-	d2T 		:: Array{Float64,2} 		# 1-dim Chebyshev basis fn: 2nd derivative
-	BF 			:: VecOrArray{Float64}		# Basis Funs
-	pinvBF		:: Array{Float64,2} 		# Inverse Basis Funs (Moore-Penrose Inverse if BF not square)
-	dBFdz 		:: Array{Matrix{Float64},1} # 1st derivative basis funs wrt z
-	d2BFdz2 	:: Array{Matrix{Float64},2}	# 2nd derivative basis funs wrt z
+	x 			:: VecOrAA{Float64} 		# Vector of coordinates at which SB is evaluated 
+	z 			:: VecOrAA{Float64} 		# Transformed vector of coordinates into [-1,1]
+	T 			:: Matrix{Float64} 			# 1-dim Chebyshev basis fn: level
+	dT 			:: Matrix{Float64} 			# 1-dim Chebyshev basis fn: 1st derivative
+	d2T 		:: Matrix{Float64} 			# 1-dim Chebyshev basis fn: 2nd derivative
+	BF 			:: AA{Float64}				# Basis Funs
+	dBFdz 		:: AAA{Float64} 			# 1st derivative basis funs wrt z
+	d2BFdz2 	:: AAAA{Float64}			# 2nd derivative basis funs wrt z
 	dzdx		:: Vector{Float64} 			# Gradient of transform z→x
 	d2zdx2		:: Vector{Float64}			# Diagonal of Hessian of transform z→x (0 in linear maps, so only useful in nonlinear mapping)
-	dBFdx 		:: Array{Matrix{Float64},1} # 1st derivative basis funs wrt x
-	d2BFdx2 	:: Array{Matrix{Float64},2}	# 2nd derivative basis funs wrt x
-	CalcInv 	:: Bool 					# Whether or not to calculate BF^-1 				
-	is_sg 		:: Bool						# INdicator of what was used to generate type
+	dBFdx 		:: AAA{Float64} 			# 1st derivative basis funs wrt x
+	d2BFdx2 	:: AAAA{Float64}			# 2nd derivative basis funs wrt x
 
 	# Constructor function with conformable memory allocations. Need to makeBF!(sb) to fill it in.
-	function SmolyakBasis(sg::SmolyakGrid,NumDeriv::Int64=2,CalcInv::Bool=false,is_sg::Bool=true)
+	function SmolyakBasis(sg::SmolyakGrid,NumDeriv::Int64=2,NumDerivArgs::Int64=sg.D)
 		
 		# Components for evaluation of Basis Functions
-		NumBF = size(sg.Binds,2)
-		max_order = maximum(sg.Binds)+1
-		T = Array(Float64, sg.D, max_order)
+		NumBF = length(sg.Binds)
+		max_order = 0
+		for i in eachindex(sg.Binds), j in 1:sg.D
+			max_order = max(max_order,sg.Binds[i][j]+1)
+		end
+
+		# Preallocate memory for basis functions
+		T = Array{Float64}(sg.D, max_order) 	
 		dT = similar(T)
 		d2T = similar(T)
 		
 		# For Basis Functions and transformation back: Allocate memory for BF, pinvBF, and derivatives -> then makeBF!(sb)
-		BF = ones(Float64,NumBF,sg.NumGrdPts)
-		pinvBF = similar(BF)
-		dBFdz = [ones(Float64,NumBF,sg.NumGrdPts) for d1 in 1:sg.D] 
-		d2BFdz2 = [ones(Float64,NumBF,sg.NumGrdPts) for d1 in 1:sg.D, d2 in 1:sg.D]
-		dzdx = 2./(sg.ub - sg.lb)
-		d2zdx2 = zeros(Float64,sg.D) 
-		dBFdx = [ones(Float64,NumBF,sg.NumGrdPts) for d1 in 1:sg.D] 
-		d2BFdx2 = [ones(Float64,NumBF,sg.NumGrdPts) for d1 in 1:sg.D, d2 in 1:sg.D]
+		BF = Vector{Float64}[ones(Float64,NumBF) 
+					for n in 1:sg.NumGrdPts]			# BF[n][p] where n =1:NumGrdPts, p=1:NumBF
 		
+		dBFdz = AA{Float64}[[ones(Float64,NumBF) 
+					for i in 1:NumDerivArgs] 
+					for n in 1:sg.NumGrdPts]			#= dBFdz[n][i][p] where n = 1:NumGrdPts, 
+														 i is position of 1st derivative,and p=1:NumBF =#
+		d2BFdz2 = AAA{Float64}[[[ones(Float64,NumBF) 
+					for i in k:NumDerivArgs]
+					for k in 1:NumDerivArgs]
+					for n in 1:sg.NumGrdPts] 			#= d2BFdz2[n][i][k][p] where n =1:NumGrdPts,
+														 i is position of 1st derivative, 
+														 k = j - i + 1 where j in position of 2nd derivative, and p=1:NumBF =#
+		dzdx  = Float64[]
+		for i in 1:NumDerivArgs
+			push!(dzdx,2/(sg.ub[i] - sg.lb[i]))
+		end
+		d2zdx2 = zeros(Float64,NumDerivArgs) 
+		
+		dBFdx = AA{Float64}[[ones(Float64,NumBF) 
+					for i in 1:NumDerivArgs] 
+					for n in 1:sg.NumGrdPts]			#= dBFdz[n][i][p] where n = 1:NumGrdPts, 
+														 i is position of 1st derivative,and p=1:NumBF =#
+		d2BFdx2 = AAA{Float64}[[[ones(Float64,NumBF) 
+					for i in k:NumDerivArgs]
+					for k in 1:NumDerivArgs]
+					for n in 1:sg.NumGrdPts] 			#= d2BFdz2[n][i][k][p] where n =1:NumGrdPts,
+														i is position of 1st derivative, 
+														k = j - i + 1 where j in position of 2nd derivative, and p=1:NumBF =#	
 		new(sg.D, sg.mu,  sg.lb, sg.ub, sg.Binds, 
-			sg.NumGrdPts, NumBF, NumDeriv, max_order,
+			sg.NumGrdPts, NumBF, NumDeriv, NumDerivArgs, max_order,
 			sg.xGrid, sg.zGrid, T, dT, d2T, 
-			BF, pinvBF, dBFdz, d2BFdz2, dzdx, d2zdx2, dBFdx, d2BFdx2,
-			CalcInv, is_sg)
+			BF, dBFdz, d2BFdz2, dzdx, d2zdx2, dBFdx, d2BFdx2)
 	end
 
-	function SmolyakBasis(x::VecOrArray{Float64},sg::SmolyakGrid,NumDeriv::Int64=2,CalcInv::Bool=false,is_sg::Bool=false)
+	function SmolyakBasis(x::VecOrAA{Float64},sg::SmolyakGrid,NumDeriv::Int64=2,NumDerivArgs::Int64=sg.D)
 		
 		z = x2z(x,sg.lb,sg.ub) #= x should be D x NumPts =#
 		NumPts = size(x,2) 
 
 		# Components for evaluation of Basis Functions
-		NumBF = size(sg.Binds,2)
-		max_order = maximum(sg.Binds)+1
-		T = Array(Float64, sg.D, max_order)
+		NumBF = length(sg.Binds)
+		max_order = 0
+		for i in eachindex(sg.Binds), j in 1:sg.D
+			max_order = max(max_order,sg.Binds[i][j]+1)
+		end
+
+		# Preallocate memory for basis functions
+		T = Array{Float64}(sg.D, max_order) 	
 		dT = similar(T)
 		d2T = similar(T)
-		
+
 		# For Basis Functions and transformation back: Allocate memory for BF, pinvBF, and derivatives -> then makeBF!(sb)
-		BF = ones(Float64,NumBF,NumPts)
-		pinvBF = similar(BF)
-		dBFdz = [ones(Float64,NumBF,NumPts) for d1 in 1:sg.D] 
-		d2BFdz2 = [ones(Float64,NumBF,NumPts) for d1 in 1:sg.D, d2 in 1:sg.D]
-		dzdx = 2./(sg.ub - sg.lb)
-		d2zdx2 = zeros(Float64,sg.D) 							# Second derivative just vector because dz_idx_j =0 by construction - even with nonlinear maps
-		dBFdx = [ones(Float64,NumBF,NumPts) for d1 in 1:sg.D] 
-		d2BFdx2 = [ones(Float64,NumBF,NumPts) for d1 in 1:sg.D, d2 in 1:sg.D]
+		BF = Vector{Float64}[ones(Float64,NumBF) 
+					for n in 1:NumPts]			# BF[n][p] where n =1:NumGrdPts, p=1:NumBF
 		
+		dBFdz = AA{Float64}[[ones(Float64,NumBF) 
+					for i in 1:NumDerivArgs] 
+					for n in 1:NumPts]			#= dBFdz[n][i][p] where n = 1:NumGrdPts, 
+														 i is position of 1st derivative,and p=1:NumBF =#
+		d2BFdz2 = AAA{Float64}[[[ones(Float64,NumBF) 
+					for i in k:NumDerivArgs]
+					for k in 1:NumDerivArgs]
+					for n in 1:NumPts] 			#= d2BFdz2[n][i][k][p] where n =1:NumGrdPts,
+														 i is position of 1st derivative, 
+														 k = j - i + 1 where j in position of 2nd derivative, and p=1:NumBF =#
+		dzdx  = Float64[]
+		for i in 1:NumDerivArgs
+			push!(dzdx,2/(sg.ub[i] - sg.lb[i]))
+		end
+		d2zdx2 = zeros(Float64,NumDerivArgs) 
+		
+		dBFdx = AA{Float64}[[ones(Float64,NumBF) 
+					for i in 1:sg.D] 
+					for n in 1:NumPts]			#= dBFdz[n][i][p] where n = 1:NumGrdPts, 
+														 i is position of 1st derivative,and p=1:NumBF =#
+		d2BFdx2 = AAA{Float64}[[[ones(Float64,NumBF) 
+					for i in k:NumDerivArgs]
+					for k in 1:NumDerivArgs]
+					for n in 1:NumPts] 			#= d2BFdz2[n][i][k][p] where n =1:NumGrdPts,
+														i is position of 1st derivative, 
+														k = j - i + 1 where j in position of 2nd derivative, and p=1:NumBF =#
 		new(sg.D, sg.mu,  sg.lb, sg.ub, sg.Binds, 
-			NumPts, NumBF, NumDeriv, max_order,
+			NumPts, NumBF, NumDeriv, NumDerivArgs, max_order,
 			x, z, T, dT, d2T, 
-			BF, pinvBF, dBFdz, d2BFdz2, dzdx, d2zdx2, dBFdx, d2BFdx2,
-			CalcInv, is_sg)
+			BF, dBFdz, d2BFdz2, dzdx, d2zdx2, dBFdx, d2BFdx2)
 	end 
 	
 end
@@ -132,7 +177,7 @@ function Tn!(sb::SmolyakBasis)
 	end
 end
 
-# Basis Function evaluated at a vector z[:,i]
+# Basis Function evaluated at a vector z at a grid point i = 1:NumPts
 function Tn!(sb::SmolyakBasis,i::Int64=1)
 	for n in 1:sb.max_order, d in 1:sb.D
 		if ==(n,1)
@@ -140,46 +185,48 @@ function Tn!(sb::SmolyakBasis,i::Int64=1)
 			>=(sb.NumDeriv,1) ? sb.dT[d,n] = 0.0 : nothing
 			is(sb.NumDeriv,2) ? sb.d2T[d,n] = 0.0 : nothing				
 		elseif ==(n,2)
-			sb.T[d,n] = sb.z[d,i]
+			sb.T[d,n] = sb.z[i][d]
 			>=(sb.NumDeriv,1) ? sb.dT[d,n] = 1.0 : nothing
 			is(sb.NumDeriv,2) ? sb.d2T[d,n] = 0.0 : nothing				
 		else
-			sb.T[d,n] = 2*sb.z[d,i]*sb.T[d,n-1] - sb.T[d,n-2]
-			>=(sb.NumDeriv,1) ? sb.dT[d,n] = 2*sb.T[d,n-1] + 2*sb.z[d,i]*sb.dT[d,n-1] - sb.dT[d,n-2] : nothing
-			is(sb.NumDeriv,2) ? sb.d2T[d,n] = 4*sb.dT[d,n-1] + 2*sb.z[d,i]*sb.d2T[d,n-1] - sb.d2T[d,n-2] : nothing
+			sb.T[d,n] = 2*sb.z[i][d]*sb.T[d,n-1] - sb.T[d,n-2]
+			>=(sb.NumDeriv,1) ? sb.dT[d,n] = 2*sb.T[d,n-1] + 2*sb.z[i][d]*sb.dT[d,n-1] - sb.dT[d,n-2] : nothing
+			is(sb.NumDeriv,2) ? sb.d2T[d,n] = 4*sb.dT[d,n-1] + 2*sb.z[i][d]*sb.d2T[d,n-1] - sb.d2T[d,n-2] : nothing
 		end
 	end
 end
+
 
 # ----------- BF & derivaitves ----------- # 
 
 # Construct Basis Function
 function BF!(sb::SmolyakBasis, BFIdx::Int64, DimIdx::Int64, GridIdx::Int64=1)
-	sb.BF[BFIdx,GridIdx] *= sb.T[DimIdx,sb.Binds[DimIdx,BFIdx]+1]   
+	sb.BF[GridIdx][BFIdx] *= sb.T[DimIdx,sb.Binds[BFIdx][DimIdx]+1]   
 end
 
 # Construct dBFdz! constructs 1st derivative of BF wrt z ∈ [-1,1], the transformed domain of state vector.   for first n arguments of state vector 
-function dBFdz!(sb::SmolyakBasis, BFIdx::Int64, DimIdx::Int64, GridIdx::Int64=1, n::Int64=sb.D)
-	for d in 1:n 		# n specifies 1:n derivatives to avoid unnecessary computations is derivatives of first n arguments required
+function dBFdz!(sb::SmolyakBasis, BFIdx::Int64, DimIdx::Int64, GridIdx::Int64=1, N::Int64=sb.NumDerivArgs)
+	for d in 1:N 		# n specifies 1:n derivatives to avoid unnecessary computations is derivatives of first n arguments required
 		if ==(d,DimIdx)
-			sb.dBFdz[d][BFIdx,GridIdx] *= sb.dT[DimIdx,sb.Binds[DimIdx,BFIdx]+1 ]
+			sb.dBFdz[GridIdx][d][BFIdx] *= sb.dT[DimIdx,sb.Binds[BFIdx][DimIdx]+1 ]
 		else
-			sb.dBFdz[d][BFIdx,GridIdx] *= sb.T[DimIdx,sb.Binds[DimIdx,BFIdx]+1 ]
+			sb.dBFdz[GridIdx][d][BFIdx] *= sb.T[DimIdx,sb.Binds[BFIdx][DimIdx]+1 ]
 		end
 	end
 end
 
 # Construct d2BFdz2! constructs 1st derivative of BF wrt z ∈ [-1,1], the transformed domain of state vector for first n arguments of state vector 
-function d2BFdz2!(sb::SmolyakBasis, BFIdx::Int64, DimIdx::Int64, GridIdx::Int64=1, n::Int64=sb.D)
-	for j in 1:n, i in 1:n
+function d2BFdz2!(sb::SmolyakBasis, BFIdx::Int64, DimIdx::Int64, GridIdx::Int64=1, N::Int64=sb.NumDerivArgs)
+	for i in 1:N, j in i:N
+		k = j-i+1 				# Translate position of argument to index used to access the jth argument's derivative.
 		if DimIdx==i==j
-			sb.d2BFdz2[i,j][BFIdx,GridIdx] *= sb.d2T[DimIdx,sb.Binds[DimIdx,BFIdx]+1]
+			sb.d2BFdz2[GridIdx][i][k][BFIdx] *= sb.d2T[DimIdx,sb.Binds[BFIdx][DimIdx]+1]
 		elseif DimIdx==j!=i  
-			sb.d2BFdz2[i,j][BFIdx,GridIdx] *= sb.dT[DimIdx,sb.Binds[DimIdx,BFIdx]+1]
+			sb.d2BFdz2[GridIdx][i][k][BFIdx] *= sb.dT[DimIdx,sb.Binds[BFIdx][DimIdx]+1]
 		elseif DimIdx==i!=j
-			sb.d2BFdz2[i,j][BFIdx,GridIdx] *= sb.dT[DimIdx,sb.Binds[DimIdx,BFIdx]+1]
+			sb.d2BFdz2[GridIdx][i][k][BFIdx] *= sb.dT[DimIdx,sb.Binds[BFIdx][DimIdx]+1]
 		else
-			sb.d2BFdz2[i,j][BFIdx,GridIdx] *= sb.T[DimIdx,sb.Binds[DimIdx,BFIdx]+1]
+			sb.d2BFdz2[GridIdx][i][k][BFIdx] *= sb.T[DimIdx,sb.Binds[BFIdx][DimIdx]+1]
 		end
 	end
 end
@@ -187,23 +234,24 @@ end
 # Derivative of Transformations:dzdx, d2zdx2
 
 #= Derivative constant over grid points under linear transform =#
-function dzdx!(sb::SmolyakBasis)
-	for d in 1:sb.D
+function dzdx!(sb::SmolyakBasis,N::Int64=sb.NumDerivArgs)
+	for d in 1:N
 		sb.dzdx[d] = 2/(sb.ub[d] - sb.lb[d])  
 	end
 end
 
 # 1st derivatives for first n arguments of state vector
-function dBFdx!(sb::SmolyakBasis,n::Int64=sb.D)
-	for d in 1:n
-		sb.dBFdx[d] = sb.dBFdz[d].*sb.dzdx[d] # matrix x scalar
+function dBFdx!(sb::SmolyakBasis,N::Int64=sb.NumDerivArgs)
+	for n in 1:sb.NumPts, d in 1:N, p in 1:sb.NumBF
+		sb.dBFdx[n][d][p] = sb.dBFdz[n][d][p]*sb.dzdx[d] # matrix x scalar
 	end
 end
 
 # Second derivatives for first n arguments of state vector
-function d2BFdx2!(sb::SmolyakBasis,n::Int64=sb.D)
-	for j in 1:n, i in 1:n 
-		sb.d2BFdx2[i,j] = sb.d2BFdz2[i,j]*sb.dzdx[i]*sb.dzdx[j] # matrix x scalar x scalar
+function d2BFdx2!(sb::SmolyakBasis,N::Int64=sb.NumDerivArgs)
+	for n in 1:sb.NumPts, i in 1:N, j in i:N, p in 1:sb.NumBF
+		k = j-i+1 
+		sb.d2BFdx2[n][i][k][p] = sb.d2BFdz2[n][i][k][p]*sb.dzdx[i]*sb.dzdx[j] # matrix x scalar x scalar
 	end
 end
 
@@ -211,54 +259,56 @@ end
 #= Construct Basis Functions & Derivatives =#
 #= --------------------------------------- =#
 
-function check_domain(sb::SmolyakBasis, X::VecOrArray{Float64})
-	@assert(is(size(X,1),sb.D ),
-		"\n\tError: Dimension mismatch between Smolyak Grid and Matrix of Grid Points")	# Check correct number of dims
-	# Check x is in bounds
-	minX = Inf*ones(Float64,sb.D)
-	maxX = zeros(Float64,sb.D)
-	for n in 1:size(X,2), d in 1:size(X,1) 
-		minX[d] = min(minX[d],X[d,n])
-		maxX[d] = max(maxX[d],X[d,n])
-	end
-	for d in 1:sb.D 										# Report if X not in Bounds
-		>(maxX[d],sb.ub[d]) ? 
-			println("\tWarning: x[$d] > Upper Bound") : nothing
-		<(minX[d],sb.lb[d]) ?
-			println("\tWarning: x[$d] < Lower Bound") : nothing
+# Initialise Basis Functions with 1's
+function initBF!(sb::SmolyakBasis,N::Int64=sb.NumDerivArgs)
+	if is(sb.NumDeriv,2)
+		sb.BF = Vector{Float64}[ones(Float64,sb.NumBF) 
+				for n in 1:sb.NumPts]			# BF[n][p] where n =1:NumGrdPts, p=1:NumBF		
+		sb.dBFdz = AA{Float64}[[ones(Float64,sb.NumBF) 
+				for i in 1:N] 
+				for n in 1:sb.NumPts]			#= dBFdz[n][i][p] where n = 1:NumGrdPts, i is position of 1st derivative,and p=1:NumBF =#
+		sb.d2BFdz2 = AAA{Float64}[[[ones(Float64,sb.NumBF) 
+				for i in k:N]
+				for k in 1:N]
+				for n in 1:sb.NumPts] 			#= d2BFdz2[n][i][k][p] where n =1:NumGrdPts, i is position of 1st derivative, k = j - i + 1 where j in position of 2nd derivative, and p=1:NumBF =#
+	elseif is(sb.NumDeriv,1)
+				sb.BF = Vector{Float64}[ones(Float64,sb.NumBF) 
+				for n in 1:sb.NumPts]			# BF[n][p] where n =1:NumGrdPts, p=1:NumBF		
+		sb.dBFdz = AA{Float64}[[ones(Float64,sb.NumBF) 
+				for i in 1:N] 
+				for n in 1:sb.NumPts]			#= dBFdz[n][i][p] where n = 1:NumGrdPts, i is position of 1st derivative,and p=1:NumBF =#
+	else
+		sb.BF = Vector{Float64}[ones(Float64,sb.NumBF) 
+				for n in 1:sb.NumPts]			# BF[n][p] where n =1:NumGrdPts, p=1:NumBF
 	end
 end
 
+
 # Makes Basis Functions with sb.NumDeriv derivatives of the first n arguments of state vector
-function makeBF!(sb::SmolyakBasis,n::Int64=sb.D)
-	sb.NumPts = size(sb.x,2)
+function makeBF!(sb::SmolyakBasis,N::Int64=sb.NumDerivArgs)
+	isa(sb.x,Vector{Float64}) ? sb.NumPts = length(sb.x) : nothing
+	initBF!(sb,N) # Need to start with BF and derivatives as 1 because will take product over loops
 	if is(sb.NumDeriv,2)
-		sb.BF = ones(Float64, sb.NumBF, sb.NumPts)
-		sb.dBFdz = [ones(Float64,sb.NumBF,sb.NumPts) for d1 in 1:n]  
-		sb.d2BFdz2 = [ones(Float64,sb.NumBF,sb.NumPts) for d1 in 1:n, d2 in 1:n]		
 		for i in 1:sb.NumPts
 			Tn!(sb,i)
-			for d in 1:n, p in 1:sb.NumBF
+			for d in 1:N, p in 1:sb.NumBF
 				BF!(sb, p, d, i)
-				dBFdz!(sb, p, d, i, n)
-				d2BFdz2!(sb, p, d, i,n) 				# Hess
+				dBFdz!(sb, p, d, i, N)
+				d2BFdz2!(sb, p, d, i, N) 			# Hess
 			end
 		end
-		dBFdx!(sb, n)
-		d2BFdx2!(sb, n)
+		dBFdx!(sb, N)
+		d2BFdx2!(sb, N)
 	elseif is(sb.NumDeriv,1)
-		sb.BF = ones(Float64, sb.NumBF, sb.NumPts)
-		sb.dBFdz = [ones(Float64,sb.NumBF,sb.NumPts) for d1 in 1:n] 
 		for i in 1:sb.NumPts
 			Tn!(sb,i)
-			for d in 1:n, p in 1:sb.NumBF
+			for d in 1:N, p in 1:sb.NumBF
 				BF!(sb, p, d, i)
-				dBFdz!(sb, p, d, i, n) 				# Jac
+				dBFdz!(sb, p, d, i, N) 				# Jac
 			end
 		end
-		dBFdx!(sb, n)
+		dBFdx!(sb, N)
 	elseif is(sb.NumDeriv,0)
-		sb.BF = ones(Float64, sb.NumBF, sb.NumPts) 	# Basis Function Matrix to Fill In
 		for i in 1:sb.NumPts 						# Loop over each grid point.
 			Tn!(sb,i) 								# Evaluate Basis Function Value in each Dimension at each grid point, i: This is D x NumBF 
 			for d in 1:n, p in 1:sb.NumBF 			# Make Basis Function levels & derivatives for grid points i:
@@ -268,7 +318,6 @@ function makeBF!(sb::SmolyakBasis,n::Int64=sb.D)
 	else
 		print("Warning: sb.NumDeriv∈{0,1,2}")
 	end
-	is(sb.CalcInv,true) ? sb.pinvBF = pinv(sb.BF) : nothing
 end
 
 function show(io::IO, sb::SmolyakBasis)
@@ -277,7 +326,7 @@ function show(io::IO, sb::SmolyakBasis)
 	msg *= "\t- NumPts: $(sb.NumPts)\n"
 	msg *= "\t- Number of Basis Functions: $(sb.NumBF)\n"
 	if ==(sb.NumDeriv,0) msg *= "\t- No Derivative supplied. Do not call dBFdx or d2BFdx2.\n" end
-	if ==(sb.NumDeriv,1) msg *= "\t- with dBFdx. Do not call d2BFdx2.\n" end
-	if ==(sb.NumDeriv,2) msg *= "\t- with dBFdx & d2BFdx2.\n" end
+	if ==(sb.NumDeriv,1) msg *= "\t- with dBFdx up to first $(sb.NumDerivArgs) arguments. Do not call d2BFdx2.\n" end
+	if ==(sb.NumDeriv,2) msg *= "\t- with dBFdx & d2BFdx2 up to first $(sb.NumDerivArgs) arguments.\n" end
 	print(io, msg)
 end
