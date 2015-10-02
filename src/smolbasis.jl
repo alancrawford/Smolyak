@@ -40,7 +40,7 @@ type SmolyakBasis
 	dBFdx 		:: AAA{Float64} 			# 1st derivative basis funs wrt x
 	d2BFdx2 	:: AAAA{Float64}			# 2nd derivative basis funs wrt x
 
-	# Constructor function with conformable memory allocations. Need to makeBF!(sb) to fill it in.
+	# Constructor function with conformable memory allocations. Need to makeBasis!(sb) to fill it in.
 	function SmolyakBasis(sg::SmolyakGrid,NumDeriv::Int64=2,NumDerivArgs::Int64=sg.D)
 		
 		# Components for evaluation of Basis Functions
@@ -55,7 +55,7 @@ type SmolyakBasis
 		dT = similar(T)
 		d2T = similar(T)
 		
-		# For Basis Functions and transformation back: Allocate memory for BF, pinvBF, and derivatives -> then makeBF!(sb)
+		# For Basis Functions and transformation back: Allocate memory for BF, pinvBF, and derivatives -> then makeBasis!(sb)
 		BF = Vector{Float64}[ones(Float64,NumBF) 
 					for n in 1:sg.NumGrdPts]			# BF[n][p] where n =1:NumGrdPts, p=1:NumBF
 		
@@ -108,7 +108,7 @@ type SmolyakBasis
 		dT = similar(T)
 		d2T = similar(T)
 
-		# For Basis Functions and transformation back: Allocate memory for BF, pinvBF, and derivatives -> then makeBF!(sb)
+		# For Basis Functions and transformation back: Allocate memory for BF, pinvBF, and derivatives -> then makeBasis!(sb)
 		BF = Vector{Float64}[ones(Float64,NumBF) 
 					for n in 1:NumPts]			# BF[n][p] where n =1:NumGrdPts, p=1:NumBF
 		
@@ -139,6 +139,68 @@ type SmolyakBasis
 														i is position of 1st derivative, 
 														k = j - i + 1 where j in position of 2nd derivative, and p=1:NumBF =#
 		new(sg.D, sg.mu,  sg.lb, sg.ub, sg.Binds, 
+			NumPts, NumBF, NumDeriv, NumDerivArgs, max_order,
+			x, z, T, dT, d2T, 
+			BF, dBFdz, d2BFdz2, dzdx, d2zdx2, dBFdx, d2BFdx2)
+	end 
+
+	# Constructor function without Smolyak Grid Call
+	function SmolyakBasis(x::VecOrAA{Float64},D::Int64, mu::ScalarOrVec{Int64},
+							lb::Vector{Float64}=-1*ones(Float64,D), ub::Vector{Float64}=ones(Float64,D),
+							NumDeriv::Int64=2,NumDerivArgs::Int64=D)
+		
+		NumGrdPts, Ginds = SmolIdx(tuple(mu...))
+		Binds = Vector{Int64}[Array{Int64}(D) for r in 1:NumGrdPts]
+		makeBasisIdx!(Binds,Ginds,tuple(mu...)) # Basis Function Indices
+		z = Vector{Float64}[Array{Float64}(D) for r in 1:length(x)]
+		x2z!(x,z,lb,ub) 						#= x should be D x NumPts =#
+		NumPts = length(x) 
+		
+		# Make Grid and Indices
+		
+		# Components for evaluation of Basis Functions
+		NumBF = length(Binds)
+		max_order = 0
+		for i in eachindex(Binds), j in 1:D
+			max_order = max(max_order,Binds[i][j]+1)
+		end
+
+		# Preallocate memory for basis functions
+		T = Array{Float64}(D, max_order) 	
+		dT = similar(T)
+		d2T = similar(T)
+
+		# For Basis Functions and transformation back: Allocate memory for BF, pinvBF, and derivatives -> then makeBasis!(sb)
+		BF = Vector{Float64}[ones(Float64,NumBF) 
+					for n in 1:NumPts]			# BF[n][p] where n =1:NumGrdPts, p=1:NumBF
+		
+		dBFdz = AA{Float64}[[ones(Float64,NumBF) 
+					for i in 1:NumDerivArgs] 
+					for n in 1:NumPts]			#= dBFdz[n][i][p] where n = 1:NumGrdPts, 
+														 i is position of 1st derivative,and p=1:NumBF =#
+		d2BFdz2 = AAA{Float64}[[[ones(Float64,NumBF) 
+					for i in k:NumDerivArgs]
+					for k in 1:NumDerivArgs]
+					for n in 1:NumPts] 			#= d2BFdz2[n][i][k][p] where n =1:NumGrdPts,
+														 i is position of 1st derivative, 
+														 k = j - i + 1 where j in position of 2nd derivative, and p=1:NumBF =#
+		dzdx  = Float64[]
+		for i in 1:NumDerivArgs
+			push!(dzdx,2/(ub[i] - lb[i]))
+		end
+		d2zdx2 = zeros(Float64,NumDerivArgs) 
+		
+		dBFdx = AA{Float64}[[ones(Float64,NumBF) 
+					for i in 1:D] 
+					for n in 1:NumPts]			#= dBFdz[n][i][p] where n = 1:NumGrdPts, 
+														 i is position of 1st derivative,and p=1:NumBF =#
+		d2BFdx2 = AAA{Float64}[[[ones(Float64,NumBF) 
+					for i in k:NumDerivArgs]
+					for k in 1:NumDerivArgs]
+					for n in 1:NumPts] 			#= d2BFdz2[n][i][k][p] where n =1:NumGrdPts,
+														i is position of 1st derivative, 
+														k = j - i + 1 where j in position of 2nd derivative, and p=1:NumBF =#
+		new(D, mu,  lb, ub, Binds, 
 			NumPts, NumBF, NumDeriv, NumDerivArgs, max_order,
 			x, z, T, dT, d2T, 
 			BF, dBFdz, d2BFdz2, dzdx, d2zdx2, dBFdx, d2BFdx2)
@@ -247,7 +309,7 @@ function dBFdx!(sb::SmolyakBasis,N::Int64=sb.NumDerivArgs)
 	end
 end
 
-# Second derivatives for first n arguments of state vector
+# 2nd derivatives for first n arguments of state vector
 function d2BFdx2!(sb::SmolyakBasis,N::Int64=sb.NumDerivArgs)
 	for n in 1:sb.NumPts, i in 1:N, j in i:N, p in 1:sb.NumBF
 		k = j-i+1 
@@ -285,7 +347,7 @@ end
 
 
 # Makes Basis Functions with sb.NumDeriv derivatives of the first n arguments of state vector
-function makeBF!(sb::SmolyakBasis,N::Int64=sb.NumDerivArgs)
+function makeBasis!(sb::SmolyakBasis,N::Int64=sb.NumDerivArgs)
 	isa(sb.x,Vector{Float64}) ? sb.NumPts = length(sb.x) : nothing
 	initBF!(sb,N) # Need to start with BF and derivatives as 1 because will take product over loops
 	if is(sb.NumDeriv,2)
@@ -311,7 +373,7 @@ function makeBF!(sb::SmolyakBasis,N::Int64=sb.NumDerivArgs)
 	elseif is(sb.NumDeriv,0)
 		for i in 1:sb.NumPts 						# Loop over each grid point.
 			Tn!(sb,i) 								# Evaluate Basis Function Value in each Dimension at each grid point, i: This is D x NumBF 
-			for d in 1:n, p in 1:sb.NumBF 			# Make Basis Function levels & derivatives for grid points i:
+			for d in 1:N, p in 1:sb.NumBF 			# Make Basis Function levels & derivatives for grid points i:
 				BF!(sb, p, d, i) 					# Now need to multiply over dimension to create a NBF-vector of Basis Function at grid point i. END OF LOOP → NumBF x NumPts for all grid points. 
 			end 									
 		end

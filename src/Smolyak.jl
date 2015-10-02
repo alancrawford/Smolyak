@@ -16,8 +16,8 @@ include("smolbasis.jl")
 include("smolpoly.jl")
 
 # Make functions defined in the module available =#
-export 	SmolyakGrid, x2z, z2x, x2z!, z2x!,
-		SmolyakBasis, makeBF!, new_x!, 
+export 	SmolyakGrid, makeGrid!, x2z, z2x, x2z!, z2x!,
+		SmolyakBasis, makeBasis!, new_x!, 
 		SmolyakPoly, getValue!, getGrad!, getHess!, get_pinvBFt!, getCoef!
 
 end

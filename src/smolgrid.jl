@@ -26,6 +26,7 @@ type SmolyakGrid
 	xGrid 		::	AA{Float64}			# Smolyak Grid on original domain x in [lb,ub]
 	Binds    	::  AA{Int64}			# Input to construct Basis Funs for set of grid points -> Will depend on mu.
 
+	"Constructor function for Smolyak Grid"
 	function SmolyakGrid(D::Int64, mu::ScalarOrVec{Int64},lb::Vector{Float64}=-1*ones(Float64,D), ub::Vector{Float64}=ones(Float64,D))
 		
 		# Setup
@@ -223,7 +224,7 @@ end
 
 # In place coordinate transform for vector: x→z
 function x2z!(x::AA{Float64},z::AA{Float64},lb::Vector{Float64},ub::Vector{Float64})
-	for n in 1:eachindex(z), d in eachindex(x[1])
+	for n in eachindex(z), d in eachindex(x[1])
 		z[n][d] = (2x[n][d] - ub[d] - lb[d])/(ub[d] - lb[d]) 
 	end
 end
