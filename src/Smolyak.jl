@@ -1,3 +1,7 @@
+"Module contains code to define Smolyak Grids and constrict corresponding Interpolating Smolyak 
+Polynomials. Both Anisotrophic and Isotrophic Grids/Polynomials are supported and are constructed 
+efficiently following the methodology outlined in Judd, Maliar, Maliar, Valero (2014). 
+The code is designed for Julia version: 0.4."
 module Smolyak
 
 using Base.Cartesian, Base.LinAlg, Iterators

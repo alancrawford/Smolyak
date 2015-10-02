@@ -6,7 +6,7 @@
 This file contains code to define Smolyak Grid type. Both Anisotrophic and 
 Isotrophic Grids are supported and they are constructed efficiently 
 following the methodology outlined in JMMV (2014). The code is designed on 
-latest stable Julia version: 0.4.
+latest Julia version: 0.4.
 
 Key Refs: JMMV (2014), Burkhardt (2012)
 

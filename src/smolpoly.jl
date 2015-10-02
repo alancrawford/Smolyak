@@ -1,21 +1,3 @@
-#= Allocations!
-sp.f = Vector{Float64}(sb.NumPts)
-sp.Grad=Vector{Float64}[ones(Float64,sb.D) for i in 1:sb.NumPts]
-sp.Hess=Matrix{Float64}[ones(Float64,sb.D,sb.D) for i in 1:sb.NumPts]
-
-# Then do looped matrix multiplication
-
-for n in ... and so on... 
-s = 0.0
-for p = 1:sb.NumBF
-	s += sb.d2BFdx[n][i][j][p]*θ[p] 
-end
-sp.Hess[n][i,j] = s
-
-=#
-
-#= Smolyak Interpolant =#
-
 #= ************************ =#
 #= Smolyak Polynomial type  =#
 #= ************************ =#
