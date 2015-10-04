@@ -63,7 +63,7 @@ D = 3 								# Dimensionality of the problem
 mu = [2,3,3]						# Vector controlling polynomial accuracy in each dimension
 Xlow = zeros(D) 					# Lower bounds over approximation domain
 Xhigh = collect(3.:-1:1.) 			# Upper bounds over approximation domain
-sg = SmolyakGrid(D,mu,Xlow,Xhigh) 	# Set up Smolyak Grid
+sg = SmolyakGrid(mu,Xlow,Xhigh) 	# Set up Smolyak Grid
 
 
 #= 	***********************************************************

@@ -1,21 +1,139 @@
-#= 
-	-----------------------------------------------------------------
-	Smolyak Basis Functions on a Smolyak Grid for Julia Version 0.4  
-	-----------------------------------------------------------------
-
-This file contains code to define Smolyak Constructtion of Chebyshev
-basis functions. It is compatible with both Anisotrophic and Isotrophic 
-Grids and are constructed efficiently following the methodology outlined
- in JMMV (2014). 
-
-Key Refs: JMMV (2014), Burkhardt (2012)
-
-=#
-
 #= ******************* =#
 #= Smolyak Basis type  =#
 #= ******************* =#
 
+"""
+## Description
+
+Smolyak Basis type. Both Anisotrophic and Isotrophic Grids are supported 
+and they are constructed efficiently following the methodology outlined in
+Judd, Maliar, Maliar, Valero (2014). The code is designed for Julia v0.4.
+
+#### Fields
+
+- `D :: Int64` : Dimensions
+- `mu :: ScalarOrVec{Int64}` : Index of mu
+- `lb :: Vector{Float64}`	: Lower Bounds of dimensions
+- `ub :: Vector{Float64}`	: Upper Bounds of dimensions
+- `Binds :: AA{Int64}` : Basis Function Indices for Smolyak Interpolant, f(D,mu)
+- `NumPts :: Int64` : Number of points in = Num Rows BF
+- `NumBF :: Int64` : Number of basis functions under D, mu = Num Cols BF
+- `NumDeriv :: Int64`	: Number of derivatives ∈ {0,1,2}
+- `NumDerivArgs :: Int64`	: 1st NumDerivArgs used (i.e. 1:NumDerivArgs)
+- `max_order :: Int64` : Maximum order of polynomial for T
+- `x :: VecOrAA{Float64}` : Vector of coordinates at which SB is evaluated 
+- `z :: VecOrAA{Float64}`	: Transformed vector of coordinates into [-1,1]
+- `T :: Matrix{Float64}` : 1-dim Chebyshev basis fns: level
+- `dT :: Matrix{Float64}` : 1-dim Chebyshev basis fns: 1st derivative
+- `d2T :: Matrix{Float64}` : 1-dim Chebyshev basis fns: 2nd derivative
+- `BF :: AA{Float64}`	: Basis Funs
+- `dBFdz :: AAA{Float64}` : 1st derivative basis funs wrt z
+- `d2BFdz2 :: AAAA{Float64}` : 2nd derivative basis funs wrt z
+- `dzdx :: Vector{Float64}` : Gradient of transform z→x
+- `d2zdx2 :: Vector{Float64}`	: Diagonal of Hessian of transform z→x (0 in linear maps, so only useful in nonlinear mapping)
+- `dBFdx :: AAA{Float64}` : 1st derivative basis funs wrt x
+- `d2BFdx2 :: AAAA{Float64}` : 2nd derivative basis funs wrt x
+
+**Notes**: 'AA{T}' is type alias for 'Array{Array{T,1},1}' and 'AAA{T}' is defined analogously, etc.
+ See ?Smolyak for list of typealias used in the package.
+
+## Constructor functions
+
+The constructor function creates the fields to contain the Smolyak Basis. 
+To construct the Basis Functions as described by `mu`, `lb`, `ub`, `NumDeriv`, 
+`NumDerivArgs` then call makeBasis!(sb). 
+
+#### Using Smolyak Grid
+
+To construct the container for SmolyakBasis call:
+
+`sb = SmolyakBasis(sg,NumDeriv,NumDerivArgs)`
+
+where:
+
+- `sg :: SmolyakGrid`
+- `NumDeriv :: Int64=2`
+- `NumDerivArgs :: Int64=sg.D`
+
+Then need to make basis functions call: 
+
+`makeBasis!(sb)`
+
+#### Using Smolyak Grid at new point, x
+
+To construct the container for SmolyakBasis on a new (set of) grid point(s), x, 
+and a Smolyak Grid is defined call:
+
+`sb = SmolyakBasis(x,sg,NumDeriv,NumDerivArgs)`
+
+where:
+
+- `x :: VecOrAA{Float64}`
+- `sg :: SmolyakGrid`
+- `NumDeriv :: Int64=2`
+- `NumDerivArgs :: Int64=sg.D`
+
+#### Construct without Smolyak grid
+
+To construct the container for SmolyakBasis on a new (set of) grid point(s), x, 
+without specifying a Smolyak Grid call:
+
+`sb = SmolyakBasis(x,mu,lb,ub,NumDeriv,NumDerivArgs,D)`
+		
+where:
+
+- `x :: VecOrAA{Float64}` 
+- `mu :: ScalarOrVec{Int64}`
+- `lb :: Vector{Float64} = -1*ones(Float64,D)`
+- `ub :: Vector{Float64} = ones(Float64,D)`
+- `NumDeriv :: Int64=2`
+- `NumDerivArgs :: Int64=D`
+- `D :: Int64 = length(mu)`
+
+## Examples
+
+If Smolyak Grid already defined and want to evaluate Smolyak Basis functions on the grid:
+```julia
+using Smolyak
+mu = [2,2,2]
+lb = -2.*ones(length(mu))
+ub = 3.*ones(length(mu))
+sg = SmolyakGrid(mu,lb,ub)
+sb = SmolyakBasis(sg)
+makeBasis!(sb)
+```
+
+If Smolyak Grid already defined and want to evaluate Smolyak Basis functions on new grid point(s), x:
+```julia
+using Smolyak
+mu = [2,2,2]
+lb = -2.*ones(length(mu))
+ub = 3.*ones(length(mu))
+sg = SmolyakGrid(mu,lb,ub)
+NumObs = 1000
+x = Vector{Float64}[Array{Float64}(length(mu)) for i = 1:NumObs]
+for i in 1:NumObs
+	x[i] = [ sg.lb[d]+( sg.ub[d]- sg.lb[d])*rand() for d in 1:sg.D]
+end
+sb = SmolyakBasis(x,sg)
+makeBasis!(sb)
+```
+
+Without a Smolyak Grid:
+```julia
+using Smolyak
+mu = [2,2,2]
+lb = -2.*ones(length(mu))
+ub = 3.*ones(length(mu))
+NumObs = 1000
+x = Vector{Float64}[Array{Float64}(length(mu)) for i = 1:NumObs]
+for i in 1:NumObs
+	x[i] = [ lb[d]+( ub[d]- lb[d])*rand() for d in 1:length(mu)]
+end
+sb = SmolyakBasis(x,mu,lb,ub)
+makeBasis!(sb)
+```
+"""
 type SmolyakBasis
 	D 			:: Int64					# Dimensions
 	mu 			:: ScalarOrVec{Int64}		# Index of mu
@@ -93,8 +211,9 @@ type SmolyakBasis
 
 	function SmolyakBasis(x::VecOrAA{Float64},sg::SmolyakGrid,NumDeriv::Int64=2,NumDerivArgs::Int64=sg.D)
 		
-		z = x2z(x,sg.lb,sg.ub) #= x should be D x NumPts =#
-		NumPts = size(x,2) 
+		z = Vector{Float64}[Array{Float64}(sg.D) for r in 1:length(x)]
+		x2z!(x,z,sg.lb,sg.ub) 						#= x should be D x NumPts =#
+		NumPts = length(x)  
 
 		# Components for evaluation of Basis Functions
 		NumBF = length(sg.Binds)
@@ -145,9 +264,9 @@ type SmolyakBasis
 	end 
 
 	# Constructor function without Smolyak Grid Call
-	function SmolyakBasis(x::VecOrAA{Float64},D::Int64, mu::ScalarOrVec{Int64},
-							lb::Vector{Float64}=-1*ones(Float64,D), ub::Vector{Float64}=ones(Float64,D),
-							NumDeriv::Int64=2,NumDerivArgs::Int64=D)
+	function SmolyakBasis(x::VecOrAA{Float64}, mu::ScalarOrVec{Int64},
+							lb::Vector{Float64}=-1*ones(Float64,length(mu)), ub::Vector{Float64}=ones(Float64,length(mu)),
+							NumDeriv::Int64=2,NumDerivArgs::Int64=length(mu),D::Int64=length(mu))
 		
 		NumGrdPts, Ginds = SmolIdx(tuple(mu...))
 		Binds = Vector{Int64}[Array{Int64}(D) for r in 1:NumGrdPts]

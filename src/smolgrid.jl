@@ -1,21 +1,52 @@
-#= 
-	-------------------------------------
-	Smolyak Grid for Julia version 0.4  
-	-------------------------------------
-
-This file contains code to define Smolyak Grid type. Both Anisotrophic and 
-Isotrophic Grids are supported and they are constructed efficiently 
-following the methodology outlined in JMMV (2014). The code is designed on 
-latest Julia version: 0.4.
-
-Key Refs: JMMV (2014), Burkhardt (2012)
-
-=#
-
 #= ***************** =#
 #= Smolyak Grid Type =#
 #= ***************** =#
 
+"""
+## Description
+
+Smolyak Grid type. Both Anisotrophic and Isotrophic Grids are supported 
+and they are constructed efficiently following the methodology outlined in
+Judd, Maliar, Maliar, Valero (2014). The code is designed for Julia v0.4.
+
+#### Fields
+
+- `D :: Int64` : Dimensions
+- `mu :: ScalarOrVec{Int64}` : Index of mu
+- `NumGrdPts :: Int64` : Number of Grid Points
+- `lb :: Vector{Float64}` : Lower Bounds of dimensions
+- `ub :: Vector{Float64}` : Upper Bounds of dimensions
+- `zGrid :: AA{Float64}` : Smolyak Grid on z = [-1,1]
+- `xGrid :: AA{Float64}` : Smolyak Grid on original domain x in [lb,ub]
+- `Binds :: AA{Int64}` : Input to construct Basis Functions 
+
+**Notes**: 'AA{T}' is type alias for 'Array{Array{T,1},1}' and 'AAA{T}' is defined analogously, etc.
+ See ?Smolyak for list of typealias used in the package.
+
+## Constructor function
+
+`sg = SmolyakGrid(mu,lb,ub,D)`
+
+where 
+
+- `mu :: ScalarOrVec{Int64}`
+- `lb :: Vector{Float64} = -1*ones(Float64,D)`
+- `ub :: Vector{Float64} = ones(Float64,D)`
+- `D :: Int64 = length(mu)`
+
+**Notes**: lb, ub, and D have default settings and can be omitted. In particular, D 
+would be omitted in most calls.
+
+## Examples
+
+```julia
+using Smolyak
+mu = [2,2,2]
+lb = -2.*ones(length(mu))
+ub = 3.*ones(length(mu))
+sg = SmolyakGrid(mu,lb,ub)
+```
+"""
 type SmolyakGrid
 	D 			::	Int64				# Dimensions
 	mu 			::	ScalarOrVec{Int64}	# Index of mu
@@ -26,7 +57,7 @@ type SmolyakGrid
 	xGrid 		::	AA{Float64}			# Smolyak Grid on original domain x in [lb,ub]
 	Binds    	::  AA{Int64}			# Input to construct Basis Funs for set of grid points -> Will depend on mu.
 
-	function SmolyakGrid(D::Int64, mu::ScalarOrVec{Int64},lb::Vector{Float64}=-1*ones(Float64,D), ub::Vector{Float64}=ones(Float64,D))
+	function SmolyakGrid(mu::ScalarOrVec{Int64},lb::Vector{Float64}=-1*ones(Float64,D), ub::Vector{Float64}=ones(Float64,D),D::Int64=length(mu))
 		
 		# Setup
 		NumGrdPts, Ginds = SmolIdx(tuple(mu...))
@@ -130,7 +161,6 @@ end
 	end
 end
 	
-# Constructs the Smolyak Grid
 @generated function makeGrid!{N}(H::AA{Float64},inds::AA{Int64},mu::NTuple{N,Int64})
 	quote 
 		zH = 0

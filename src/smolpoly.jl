@@ -2,7 +2,72 @@
 #= Smolyak Polynomial type  =#
 #= ************************ =#
 
+"""
+## Description
 
+Smolyak Polynomial type. Both Anisotrophic and Isotrophic Grids are supported 
+and they are constructed efficiently following the methodology outlined in
+Judd, Maliar, Maliar, Valero (2014). The code is designed for Julia v0.4.
+
+#### Fields
+
+- `NumPts :: Int64` : Number of points
+- `NumCoef :: Int64` : Number of elements in Coefficient Vector
+- `Coef :: Vector{Float64}`	: Coefficients of Smplyak Interpolant
+- `Value :: ScalarOrVec{Float64}` : Value of Interpolant at each of the sb.NumPts
+- `Grad :: AA{Float64}`	: Gradient of Interpolant up to first sp.NumDerivArgs  at grid point n = 1:NumPts
+- `Hess :: AM{Float64}` : Hessian of Interpolant up to first sp.NumDerivArgs at grid point n = 1:NumPts
+- `NumDeriv :: Int64` : Number of Derivative
+- `NumDerivArgs :: Int64` : 1 to NumDerivArgs 
+- `pinvBFt :: Matrix{Float64}` : Transpose of Moore-Penrose Pseudo Inverse of sb.BF (for case where NumPts ≥ NumCoef)
+
+## Constructor functions
+
+The constructor function creates the fields to contain the Smolyak Polynomial.
+
+`sp = SmolyakPoly(sb, Coef, NumDeriv, NumDerivArgs, NumPts)`
+
+where:
+
+- `sb :: SmolyakBasis`
+- `Coef :: Vector=rand(sb.NumBF)`
+- `NumDeriv :: Int64=sb.NumDeriv`
+- `NumDerivArgs :: Int64=sb.NumDerivArgs`
+- `NumPts :: Int64=sb.NumPts)'
+
+After creating the fields for the Smolyak Polynomial, for a given coefficient vector, sp.Coed, 
+fill-in the value, gradient and hessian of fields of the Smolyak Polynomial 
+
+- For polynomial value(s): `getValue!(sp)`
+- For gradient: `getGrad!(sp)`
+- For hessian: `getHess!(sp)`
+
+Alternatively, to find a new coefficient vector using least squares given function values, sp.Values, 
+and Basis Functions, sb.BF, then:
+
+**Step 1**: Calculate Moore-Penrose Pseudo-Inverse for sb.BF: `get_pinvBFt!(sp)`
+
+**Step 2**: Solve for new coefficient vector: `getCoef!(sp)`
+
+## Examples
+
+```julia  
+using Smolyak
+mu = [2,2,2]
+lb = -2.*ones(length(mu))
+ub = 3.*ones(length(mu))
+sg = SmolyakGrid(mu,lb,ub)
+sb = SmolyakBasis(sg)
+makeBasis!(sb)
+sp = SmolyakPoly(sb)
+getValue!(sp,sb)
+getGrad!(sp,sb)
+getHess!(sp,sb)
+```
+
+For more detailed example see [Interpolation_Example.jl](./test/Interpolation_Example.jl).
+	
+"""
 type SmolyakPoly
 	NumPts 		:: Int64 					# Number of points
 	NumCoef 	:: Int64					# Number of elements in Coefficient Vector
