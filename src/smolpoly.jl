@@ -33,7 +33,7 @@ where:
 - `Coef :: Vector=rand(sb.NumBF)`
 - `NumDeriv :: Int64=sb.NumDeriv`
 - `NumDerivArgs :: Int64=sb.NumDerivArgs`
-- `NumPts :: Int64=sb.NumPts)'
+- `NumPts :: Int64=sb.NumPts`
 
 After creating the fields for the Smolyak Polynomial, for a given coefficient vector, sp.Coed, 
 fill-in the value, gradient and hessian of fields of the Smolyak Polynomial 
