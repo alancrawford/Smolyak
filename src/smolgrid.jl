@@ -30,8 +30,8 @@ Judd, Maliar, Maliar, Valero (2014). The code is designed for Julia v0.4.
 where 
 
 - `mu :: ScalarOrVec{Int64}`
-- `lb :: Vector{Float64} = -1*ones(Float64,D)`
-- `ub :: Vector{Float64} = ones(Float64,D)`
+- `lb :: Vector{Float64} = -1*ones(Float64,length(mu))`
+- `ub :: Vector{Float64} = ones(Float64,length(mu))`
 - `D :: Int64 = length(mu)`
 
 **Notes**: lb, ub, and D have default settings and can be omitted. In particular, D 
@@ -57,7 +57,7 @@ type SmolyakGrid
 	xGrid 		::	AA{Float64}			# Smolyak Grid on original domain x in [lb,ub]
 	Binds    	::  AA{Int64}			# Input to construct Basis Funs for set of grid points -> Will depend on mu.
 
-	function SmolyakGrid(mu::ScalarOrVec{Int64},lb::Vector{Float64}=-1*ones(Float64,D), ub::Vector{Float64}=ones(Float64,D),D::Int64=length(mu))
+	function SmolyakGrid(mu::ScalarOrVec{Int64},lb::Vector{Float64}=-1*ones(Float64,length(mu)), ub::Vector{Float64}=ones(Float64,length(mu)),D::Int64=length(mu))
 		
 		# Setup
 		NumGrdPts, Ginds = SmolIdx(tuple(mu...))

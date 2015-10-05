@@ -3,7 +3,7 @@
 using Smolyak
 D = 2
 mu = ones(Int64,D)
-sg = SmolyakGrid(D,mu)
+sg = SmolyakGrid(mu)
 NumDeriv = 2
 sb = SmolyakBasis(sg,NumDeriv)
 makeBasis!(sb)

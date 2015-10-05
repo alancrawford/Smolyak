@@ -440,24 +440,51 @@ end
 #= Construct Basis Functions & Derivatives =#
 #= --------------------------------------- =#
 
-# Initialise Basis Functions with 1's
+#= Initialise Basis Functions with 1's
 function initBF!(sb::SmolyakBasis,N::Int64=sb.NumDerivArgs)
-	if is(sb.NumDeriv,2)
+	
+		for n in 1:sb.NumPts
+			fill!(sb.BF[n],1.)
+			for i in 1:N 
+				fill!(sb.dBFdz[n][i],1.)
+				for j in i:N
+					k = j-i+1
+					fill!(sb.d2BFdz2[n][i][k],1.)
+				end
+			end
+		end
+	elseif is(sb.NumDeriv,1)
+		for n in 1:sb.NumPts
+			fill!(sb.BF[n],1.)
+			for i in 1:N 
+				fill!(sb.dBFdz[n][i],1.)
+			end
+		end
+	else
+		for n in 1:sb.NumPts
+			fill!(sb.BF[n],1.)
+		end
+	end
+end
+=#
+# Is this slower?
+function initBF!(sb::SmolyakBasis,N::Int64=sb.NumDerivArgs)
+	if is(sb.NumDeriv,2)	
 		sb.BF = Vector{Float64}[ones(Float64,sb.NumBF) 
 				for n in 1:sb.NumPts]			# BF[n][p] where n =1:NumGrdPts, p=1:NumBF		
 		sb.dBFdz = AA{Float64}[[ones(Float64,sb.NumBF) 
 				for i in 1:N] 
-				for n in 1:sb.NumPts]			#= dBFdz[n][i][p] where n = 1:NumGrdPts, i is position of 1st derivative,and p=1:NumBF =#
+				for n in 1:sb.NumPts]			# dBFdz[n][i][p] where n = 1:NumGrdPts, i is position of 1st derivative,and p=1:NumBF 
 		sb.d2BFdz2 = AAA{Float64}[[[ones(Float64,sb.NumBF) 
 				for i in k:N]
 				for k in 1:N]
-				for n in 1:sb.NumPts] 			#= d2BFdz2[n][i][k][p] where n =1:NumGrdPts, i is position of 1st derivative, k = j - i + 1 where j in position of 2nd derivative, and p=1:NumBF =#
+				for n in 1:sb.NumPts] 			# d2BFdz2[n][i][k][p] where n =1:NumGrdPts, i is position of 1st derivative, k = j - i + 1 where j in position of 2nd derivative, and p=1:NumBF 
 	elseif is(sb.NumDeriv,1)
-				sb.BF = Vector{Float64}[ones(Float64,sb.NumBF) 
+		sb.BF = Vector{Float64}[ones(Float64,sb.NumBF) 
 				for n in 1:sb.NumPts]			# BF[n][p] where n =1:NumGrdPts, p=1:NumBF		
 		sb.dBFdz = AA{Float64}[[ones(Float64,sb.NumBF) 
 				for i in 1:N] 
-				for n in 1:sb.NumPts]			#= dBFdz[n][i][p] where n = 1:NumGrdPts, i is position of 1st derivative,and p=1:NumBF =#
+				for n in 1:sb.NumPts]			# dBFdz[n][i][p] where n = 1:NumGrdPts, i is position of 1st derivative,and p=1:NumBF 
 	else
 		sb.BF = Vector{Float64}[ones(Float64,sb.NumBF) 
 				for n in 1:sb.NumPts]			# BF[n][p] where n =1:NumGrdPts, p=1:NumBF
