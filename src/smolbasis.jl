@@ -445,7 +445,7 @@ end
 #= Construct Basis Functions & Derivatives =#
 #= --------------------------------------- =#
 
-#= Initialise Basis Functions with 1's
+# Initialise Basis Functions with 1's
 function initBF!(sb::SmolyakBasis,N::Int64=sb.NumDerivArgs)
 	if is(sb.NumDeriv,2)
 		for n in 1:sb.NumPts
@@ -471,8 +471,8 @@ function initBF!(sb::SmolyakBasis,N::Int64=sb.NumDerivArgs)
 		end
 	end
 end
-=#
-# Is this slower?
+
+#= Is this slower because it allocates?
 function initBF!(sb::SmolyakBasis,N::Int64=sb.NumDerivArgs)
 	if is(sb.NumDeriv,2)	
 		sb.BF = Vector{Float64}[ones(Float64,sb.NumBF) 
@@ -495,7 +495,7 @@ function initBF!(sb::SmolyakBasis,N::Int64=sb.NumDerivArgs)
 				for n in 1:sb.NumPts]			# BF[n][p] where n =1:NumGrdPts, p=1:NumBF
 	end
 end
-
+=#
 
 # Makes Basis Functions with sb.NumDeriv derivatives of the first n arguments of state vector
 function makeBasis!(sb::SmolyakBasis,N::Int64=sb.NumDerivArgs)
