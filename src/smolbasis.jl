@@ -188,7 +188,7 @@ type SmolyakBasis
 														 i is position of 1st derivative, 
 														 k = j - i + 1 where j in position of 2nd derivative, and p=1:NumBF =#
 		dzdx  = Float64[]
-		for i in 1:NumDerivArgs
+		for i in 1:sg.D
 			push!(dzdx,2/(sg.ub[i] - sg.lb[i]))
 		end
 		d2zdx2 = zeros(Float64,NumDerivArgs) 
@@ -211,9 +211,14 @@ type SmolyakBasis
 
 	function SmolyakBasis(x::VecOrAA{Float64},sg::SmolyakGrid,NumDeriv::Int64=2,NumDerivArgs::Int64=sg.D)
 		
-		z = Vector{Float64}[Array{Float64}(sg.D) for r in 1:length(x)]
+		if isa(x,Vector{Float64})  
+			z = Array{Float64}(sg.D) 
+			NumPts = 1
+		else
+			z = Vector{Float64}[Array{Float64}(sg.D) for r in 1:length(x)]
+			NumPts = length(x)  
+		end
 		x2z!(x,z,sg.lb,sg.ub) 						#= x should be D x NumPts =#
-		NumPts = length(x)  
 
 		# Components for evaluation of Basis Functions
 		NumBF = length(sg.Binds)
@@ -242,7 +247,7 @@ type SmolyakBasis
 														 i is position of 1st derivative, 
 														 k = j - i + 1 where j in position of 2nd derivative, and p=1:NumBF =#
 		dzdx  = Float64[]
-		for i in 1:NumDerivArgs
+		for i in 1:sg.D
 			push!(dzdx,2/(sg.ub[i] - sg.lb[i]))
 		end
 		d2zdx2 = zeros(Float64,NumDerivArgs) 
@@ -304,7 +309,7 @@ type SmolyakBasis
 														 i is position of 1st derivative, 
 														 k = j - i + 1 where j in position of 2nd derivative, and p=1:NumBF =#
 		dzdx  = Float64[]
-		for i in 1:NumDerivArgs
+		for i in 1:D
 			push!(dzdx,2/(ub[i] - lb[i]))
 		end
 		d2zdx2 = zeros(Float64,NumDerivArgs) 
@@ -359,7 +364,7 @@ function Tn!(sb::SmolyakBasis)
 end
 
 # Basis Function evaluated at a vector z at a grid point i = 1:NumPts
-function Tn!(sb::SmolyakBasis,i::Int64=1)
+function Tn!(sb::SmolyakBasis,i::Int64)
 	for n in 1:sb.max_order, d in 1:sb.D
 		if ==(n,1)
 			sb.T[d,n] = 1.0
@@ -442,7 +447,7 @@ end
 
 #= Initialise Basis Functions with 1's
 function initBF!(sb::SmolyakBasis,N::Int64=sb.NumDerivArgs)
-	
+	if is(sb.NumDeriv,2)
 		for n in 1:sb.NumPts
 			fill!(sb.BF[n],1.)
 			for i in 1:N 
@@ -494,12 +499,12 @@ end
 
 # Makes Basis Functions with sb.NumDeriv derivatives of the first n arguments of state vector
 function makeBasis!(sb::SmolyakBasis,N::Int64=sb.NumDerivArgs)
-	isa(sb.x,Vector{Float64}) ? sb.NumPts = length(sb.x) : nothing
+	isa(sb.x,Vector{Float64}) ? sb.NumPts = 1  : sb.NumPts = length(sb.x)
 	initBF!(sb,N) # Need to start with BF and derivatives as 1 because will take product over loops
 	if is(sb.NumDeriv,2)
 		for i in 1:sb.NumPts
-			Tn!(sb,i)
-			for d in 1:N, p in 1:sb.NumBF
+			isa(sb.x,Vector{Float64}) ? Tn!(sb) : Tn!(sb,i)
+			for d in 1:sb.D, p in 1:sb.NumBF
 				BF!(sb, p, d, i)
 				dBFdz!(sb, p, d, i, N)
 				d2BFdz2!(sb, p, d, i, N) 			# Hess
@@ -509,8 +514,8 @@ function makeBasis!(sb::SmolyakBasis,N::Int64=sb.NumDerivArgs)
 		d2BFdx2!(sb, N)
 	elseif is(sb.NumDeriv,1)
 		for i in 1:sb.NumPts
-			Tn!(sb,i)
-			for d in 1:N, p in 1:sb.NumBF
+			isa(sb.x,Vector{Float64}) ? Tn!(sb) : Tn!(sb,i)
+			for d in 1:sb.D, p in 1:sb.NumBF
 				BF!(sb, p, d, i)
 				dBFdz!(sb, p, d, i, N) 				# Jac
 			end
@@ -518,8 +523,8 @@ function makeBasis!(sb::SmolyakBasis,N::Int64=sb.NumDerivArgs)
 		dBFdx!(sb, N)
 	elseif is(sb.NumDeriv,0)
 		for i in 1:sb.NumPts 						# Loop over each grid point.
-			Tn!(sb,i) 								# Evaluate Basis Function Value in each Dimension at each grid point, i: This is D x NumBF 
-			for d in 1:N, p in 1:sb.NumBF 			# Make Basis Function levels & derivatives for grid points i:
+			isa(sb.x,Vector{Float64}) ? Tn!(sb) : Tn!(sb,i)
+			for d in 1:sb.D, p in 1:sb.NumBF 			# Make Basis Function levels & derivatives for grid points i:
 				BF!(sb, p, d, i) 					# Now need to multiply over dimension to create a NBF-vector of Basis Function at grid point i. END OF LOOP → NumBF x NumPts for all grid points. 
 			end 									
 		end
