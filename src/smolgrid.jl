@@ -72,6 +72,26 @@ type SmolyakGrid
 
 		new(D, mu, NumGrdPts, lb, ub, z, x, Binds)
 	end
+
+	function SmolyakGrid(mu::ScalarOrVec{Int64},lb::Vector{Int64}=-1*ones(Float64,length(mu)), ub::Vector{Int64}=ones(Float64,length(mu)),D::Int64=length(mu))
+		
+		lb_float = convert(Vector{Float64},lb)
+		ub_float = convert(Vector{Float64},ub)
+
+		# Setup
+		NumGrdPts, Ginds = SmolIdx(tuple(mu...))
+		z = Vector{Float64}[Array{Float64}(D) for r in 1:NumGrdPts]
+		x = Vector{Float64}[Array{Float64}(D) for r in 1:NumGrdPts]
+		Binds = Vector{Int64}[Array{Int64}(D) for r in 1:NumGrdPts]
+
+		# Make Grid and Indices
+		makeGrid!(z,Ginds,tuple(mu...))			# Make Grid on [-1,1]
+		z2x!(z,x,lb_float,ub_float) 						# Grid on X
+		makeBasisIdx!(Binds,Ginds,tuple(mu...)) # Basis Function Indices
+
+		new(D, mu, NumGrdPts, lb_float, ub_float, z, x, Binds)
+	end
+
 end
 
 function show(io::IO, sg::SmolyakGrid)
