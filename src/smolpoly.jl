@@ -91,25 +91,17 @@ type SmolyakPoly
 
 end
 
-# Vector to multiply Basis Function vectors with coefficients
-function VecMult(X::Vector{Float64},Coef::Vector{Float64},s::Float64=0.0)
-	for i in eachindex(X)
-		s += X[i]*Coef[i]
-	end
-	return s
-end
-
 # In place fn value update
 function getValue!(sp::SmolyakPoly,sb::SmolyakBasis,Coef::Vector{Float64}=sp.Coef)
 	for n in 1:sb.NumPts
-		sp.Value[n] = VecMult(sb.BF[n],Coef)
+		sp.Value[n] = dot(sb.BF[n],Coef)
 	end
 end
 
 # In place 1st Derivative Update
 function getGrad!(sp::SmolyakPoly,sb::SmolyakBasis,Coef::Vector{Float64}=sp.Coef,N::Int64=sp.NumDerivArgs)
 	for i in 1:N, n in 1:sb.NumPts,
-		sp.Grad[n][i] = VecMult(sb.dBFdx[n][i],Coef)
+		sp.Grad[n][i] = dot(sb.dBFdx[n][i],Coef)
 	end
 end
 
@@ -117,7 +109,7 @@ end
 function getHess!(sp::SmolyakPoly,sb::SmolyakBasis,Coef::Vector{Float64}=sp.Coef,N::Int64=sp.NumDerivArgs)
 	for i in 1:N, j in i:N, n in 1:sb.NumPts,
 		k = j-i+1
-		sp.Hess[n][i,j] = VecMult(sb.d2BFdx2[n][i][k],Coef)
+		sp.Hess[n][i,j] = dot(sb.d2BFdx2[n][i][k],Coef)
 		!=(i,j) ? sp.Hess[n][j,i] = sp.Hess[n][i,j] : nothing
 	end
 end
