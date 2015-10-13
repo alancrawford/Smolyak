@@ -96,6 +96,7 @@ function getValue!(sp::SmolyakPoly,sb::SmolyakBasis,Coef::Vector{Float64}=sp.Coe
 	for n in 1:sb.NumPts
 		sp.Value[n] = dot(sb.BF[n],Coef)
 	end
+	return sp.Value
 end
 
 # In place 1st Derivative Update
@@ -103,6 +104,7 @@ function getGrad!(sp::SmolyakPoly,sb::SmolyakBasis,Coef::Vector{Float64}=sp.Coef
 	for i in 1:N, n in 1:sb.NumPts,
 		sp.Grad[n][i] = dot(sb.dBFdx[n][i],Coef)
 	end
+	return sp.Grad
 end
 
 # In place 2nd Derivative Update
@@ -112,6 +114,7 @@ function getHess!(sp::SmolyakPoly,sb::SmolyakBasis,Coef::Vector{Float64}=sp.Coef
 		sp.Hess[n][i,j] = dot(sb.d2BFdx2[n][i][k],Coef)
 		!=(i,j) ? sp.Hess[n][j,i] = sp.Hess[n][i,j] : nothing
 	end
+	return sp.Hess
 end
 
 # Get Inverse of sb.BF to calculate sp.Coef by least squares
@@ -136,6 +139,7 @@ function getCoef!(sp::SmolyakPoly,f::Vector{Float64}=sp.Value)
 		end
 		sp.Coef[k] = s
 	end	
+	return sp.Coef
 end
 
 function show(io::IO, sp::SmolyakPoly)
