@@ -211,7 +211,7 @@ for i in 1:NumObs
 	f[i] = truefun(X[i])
 end
 
-sbX = SmolyakBasis(X,D,mu,Xlow,Xhigh,NumDeriv,NumDerivArgs)
+sbX = SmolyakBasis(X,mu,Xlow,Xhigh,NumDeriv,NumDerivArgs)
 makeBasis!(sbX)
 spX = SmolyakPoly(sbX)
 copy!(spX.Coef,sp.Coef) 		# Copy over Coefficient from Collocation
@@ -225,6 +225,6 @@ for i in 1:NumObs
 	mean_abs_error += abs(spX.Value[i]/f[i]-1)
 end
 println("\nWhen D = $D, and µ = $mu then:")
-println("Max Abs. Error is log 10 units = $(round(log10(max_abs_error),4))")
-println("Mean Abs. Error is log 10 units = $(round(log10(mean_abs_error/NumObs),4))")
+println("Max Abs. Error in log 10 units = $(round(log10(max_abs_error),4))")
+println("Mean Abs. Error in log 10 units = $(round(log10(mean_abs_error/NumObs),4))")
 println("Now change mu and see how accuracy is affected. Also change the truefun(x) formula.... ")
