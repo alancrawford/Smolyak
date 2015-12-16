@@ -1,3 +1,4 @@
+[![Coverage Status](https://coveralls.io/repos/alancrawford/Smolyak/badge.svg?branch=master&service=github)](https://coveralls.io/github/alancrawford/Smolyak?branch=master)
 ## Description
 
 Module contains code to define Smolyak Grids and construct corresponding Interpolating Smolyak Polynomials. Both Anisotrophic and Isotrophic Grids/Polynomials are supported and are constructed efficiently following the methodology outlined in Judd, Maliar, Maliar, Valero (2014). 
