@@ -472,30 +472,6 @@ function initBF!(sb::SmolyakBasis,N::Int64=sb.NumDerivArgs)
 	end
 end
 
-#= Is this slower because it allocates?
-function initBF!(sb::SmolyakBasis,N::Int64=sb.NumDerivArgs)
-	if is(sb.NumDeriv,2)	
-		sb.BF = Vector{Float64}[ones(Float64,sb.NumBF) 
-				for n in 1:sb.NumPts]			# BF[n][p] where n =1:NumGrdPts, p=1:NumBF		
-		sb.dBFdz = AA{Float64}[[ones(Float64,sb.NumBF) 
-				for i in 1:N] 
-				for n in 1:sb.NumPts]			# dBFdz[n][i][p] where n = 1:NumGrdPts, i is position of 1st derivative,and p=1:NumBF 
-		sb.d2BFdz2 = AAA{Float64}[[[ones(Float64,sb.NumBF) 
-				for i in k:N]
-				for k in 1:N]
-				for n in 1:sb.NumPts] 			# d2BFdz2[n][i][k][p] where n =1:NumGrdPts, i is position of 1st derivative, k = j - i + 1 where j in position of 2nd derivative, and p=1:NumBF 
-	elseif is(sb.NumDeriv,1)
-		sb.BF = Vector{Float64}[ones(Float64,sb.NumBF) 
-				for n in 1:sb.NumPts]			# BF[n][p] where n =1:NumGrdPts, p=1:NumBF		
-		sb.dBFdz = AA{Float64}[[ones(Float64,sb.NumBF) 
-				for i in 1:N] 
-				for n in 1:sb.NumPts]			# dBFdz[n][i][p] where n = 1:NumGrdPts, i is position of 1st derivative,and p=1:NumBF 
-	else
-		sb.BF = Vector{Float64}[ones(Float64,sb.NumBF) 
-				for n in 1:sb.NumPts]			# BF[n][p] where n =1:NumGrdPts, p=1:NumBF
-	end
-end
-=#
 
 # Makes Basis Functions with sb.NumDeriv derivatives of the first n arguments of state vector
 function makeBasis!(sb::SmolyakBasis,N::Int64=sb.NumDerivArgs)
@@ -531,6 +507,12 @@ function makeBasis!(sb::SmolyakBasis,N::Int64=sb.NumDerivArgs)
 	else
 		print("Warning: sb.NumDeriv∈{0,1,2}")
 	end
+end
+
+# New state vector -> applicable when sb.x is a vector
+function updateBasis!(sb::SmolyakBasis,x::Vector{Float64},N::Int64=sb.NumDerivArgs)
+	new_x!(sb,x)
+	makeBasis(sb,N)
 end
 
 function show(io::IO, sb::SmolyakBasis)

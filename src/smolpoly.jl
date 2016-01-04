@@ -38,16 +38,16 @@ where:
 After creating the fields for the Smolyak Polynomial, for a given coefficient vector, sp.Coed, 
 fill-in the value, gradient and hessian of fields of the Smolyak Polynomial 
 
-- For polynomial value(s): `getValue!(sp)`
-- For gradient: `getGrad!(sp)`
-- For hessian: `getHess!(sp)`
+- For polynomial value(s): `makeValue!(sp)`
+- For gradient: `makeGrad!(sp)`
+- For hessian: `makeHess!(sp)`
 
 Alternatively, to find a new coefficient vector using least squares given function values, sp.Values, 
 and Basis Functions, sb.BF, then:
 
-**Step 1**: Calculate Moore-Penrose Pseudo-Inverse for sb.BF: `get_pinvBFt!(sp)`
+**Step 1**: Calculate Moore-Penrose Pseudo-Inverse for sb.BF: `make_pinvBFt!(sp)`
 
-**Step 2**: Solve for new coefficient vector: `getCoef!(sp)`
+**Step 2**: Solve for new coefficient vector: `makeCoef!(sp)`
 
 ## Examples
 
@@ -60,9 +60,9 @@ sg = SmolyakGrid(mu,lb,ub)
 sb = SmolyakBasis(sg)
 makeBasis!(sb)
 sp = SmolyakPoly(sb)
-getValue!(sp,sb)
-getGrad!(sp,sb)
-getHess!(sp,sb)
+makeValue!(sp,sb)
+makeGrad!(sp,sb)
+makeHess!(sp,sb)
 ```
 
 For more detailed example see [Interpolation_Example.jl](./test/Interpolation_Example.jl).
@@ -92,7 +92,7 @@ type SmolyakPoly
 end
 
 # In place fn value update
-function getValue!(sp::SmolyakPoly,sb::SmolyakBasis,Coef::Vector{Float64}=sp.Coef)
+function makeValue!(sp::SmolyakPoly,sb::SmolyakBasis,Coef::Vector{Float64}=sp.Coef)
 	for n in 1:sb.NumPts
 		sp.Value[n] = dot(sb.BF[n],Coef)
 	end
@@ -100,7 +100,7 @@ function getValue!(sp::SmolyakPoly,sb::SmolyakBasis,Coef::Vector{Float64}=sp.Coe
 end
 
 # In place 1st Derivative Update
-function getGrad!(sp::SmolyakPoly,sb::SmolyakBasis,Coef::Vector{Float64}=sp.Coef,N::Int64=sp.NumDerivArgs)
+function makeGrad!(sp::SmolyakPoly,sb::SmolyakBasis,Coef::Vector{Float64}=sp.Coef,N::Int64=sp.NumDerivArgs)
 	for i in 1:N, n in 1:sb.NumPts,
 		sp.Grad[n][i] = dot(sb.dBFdx[n][i],Coef)
 	end
@@ -108,7 +108,7 @@ function getGrad!(sp::SmolyakPoly,sb::SmolyakBasis,Coef::Vector{Float64}=sp.Coef
 end
 
 # In place 2nd Derivative Update
-function getHess!(sp::SmolyakPoly,sb::SmolyakBasis,Coef::Vector{Float64}=sp.Coef,N::Int64=sp.NumDerivArgs)
+function makeHess!(sp::SmolyakPoly,sb::SmolyakBasis,Coef::Vector{Float64}=sp.Coef,N::Int64=sp.NumDerivArgs)
 	for i in 1:N, j in i:N, n in 1:sb.NumPts,
 		k = j-i+1
 		sp.Hess[n][i,j] = dot(sb.d2BFdx2[n][i][k],Coef)
@@ -118,7 +118,7 @@ function getHess!(sp::SmolyakPoly,sb::SmolyakBasis,Coef::Vector{Float64}=sp.Coef
 end
 
 # Get Inverse of sb.BF to calculate sp.Coef by least squares
-function get_pinvBFt!(sp::SmolyakPoly,sb::SmolyakBasis)
+function make_pinvBFt!(sp::SmolyakPoly,sb::SmolyakBasis)
 	if >=(sp.NumPts,sp.NumCoef)
 		BF = Array{Float64}(sp.NumPts,sp.NumCoef)
 		for n in eachindex(sp.Value), p in eachindex(sp.Coef)
@@ -131,7 +131,7 @@ function get_pinvBFt!(sp::SmolyakPoly,sb::SmolyakBasis)
 end
 
 # Calculate New Coefficient using Least Squares with precalculate Moore-Penrose Pseudo-Inverse - may be more efficient than backslash if pinvBF not changing
-function getCoef!(sp::SmolyakPoly,f::Vector{Float64}=sp.Value)
+function MakeCoef!(sp::SmolyakPoly,f::Vector{Float64}=sp.Value)
 	for k in 1:sp.NumCoef
 		s = 0.0
 		for n in 1:sp.NumPts
