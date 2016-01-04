@@ -167,8 +167,8 @@ end
 	4. Get Interpolating Coefficients
 	***********************************
 =#
-get_pinvBFt!(sp,sb)		# Get Moore-Penrose Pseudo Inverse Matrix of Smolyak Basis
-getCoef!(sp) 			# Get Collocating Coefficients.
+make_pinvBFt!(sp,sb)		# Get Moore-Penrose Pseudo Inverse Matrix of Smolyak Basis
+makeCoef!(sp) 			# Get Collocating Coefficients.
 
 #=  **********************************
 	5. Check Answer from Smolyak Package
@@ -215,7 +215,7 @@ sbX = SmolyakBasis(X,mu,Xlow,Xhigh,NumDeriv,NumDerivArgs)
 makeBasis!(sbX)
 spX = SmolyakPoly(sbX)
 copy!(spX.Coef,sp.Coef) 		# Copy over Coefficient from Collocation
-getValue!(spX,sbX) 				# Interpolated Values
+makeValue!(spX,sbX) 				# Interpolated Values
 
 # Error Checking
 max_abs_error = 0.0

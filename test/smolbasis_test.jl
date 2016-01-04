@@ -11,9 +11,9 @@ makeBasis!(sb)
 # Polynomial
 coef = rand(sb.NumBF)
 sp = SmolyakPoly(sb,coef)
-getValue!(sp,sb)
-getGrad!(sp,sb)
-getHess!(sp,sb)
+makeValue!(sp,sb)
+makeGrad!(sp,sb)
+makeHess!(sp,sb)
 
 #= Analytical answers =#
 z1 = Float64[]

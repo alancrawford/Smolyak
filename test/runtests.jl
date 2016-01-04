@@ -24,7 +24,7 @@ module SmolyakTest
 					sp.Value[i] = truefun(sg.xGrid[i]) 	# Use truefun to input correct values of function into
 				end
 
-				@fact maxabs(getValue!(sp,sb) - sp.Value) < 1e-16 --> true
+				@fact maxabs(makeValue!(sp,sb) - sp.Value) < 1e-16 --> true
 			end
 
 			context("2D") do
@@ -42,7 +42,7 @@ module SmolyakTest
 					sp.Value[i] = truefun(sg.xGrid[i]) 	# Use truefun to input correct values of function into
 				end
 
-				@fact maxabs(getValue!(sp,sb) - sp.Value) < 1e-16 --> true
+				@fact maxabs(makeValue!(sp,sb) - sp.Value) < 1e-16 --> true
 
 			end
 
@@ -61,7 +61,7 @@ module SmolyakTest
 					sp.Value[i] = truefun(sg.xGrid[i]) 	# Use truefun to input correct values of function into
 				end
 
-				@fact maxabs(getValue!(sp,sb) - sp.Value) < 1e-16 --> true
+				@fact maxabs(makeValue!(sp,sb) - sp.Value) < 1e-16 --> true
 
 			end
 
@@ -80,7 +80,7 @@ module SmolyakTest
 					sp.Value[i] = truefun(sg.xGrid[i]) 	# Use truefun to input correct values of function into
 				end
 
-				@fact maxabs(getValue!(sp,sb) - sp.Value) < 1e-16 --> true
+				@fact maxabs(makeValue!(sp,sb) - sp.Value) < 1e-16 --> true
 
 			end
 		end
@@ -88,7 +88,7 @@ module SmolyakTest
 
 		facts("testing interpolation off grid with mu=$mu_") do
 
-			# get a linear function to predict
+			# make a linear function to predict
 			slopes = rand(4)
 
 			# random point picker
@@ -108,10 +108,10 @@ module SmolyakTest
 				for i in 1:sb.NumPts
 					sp.Value[i] = truefun(sg.xGrid[i]) 	# Use truefun to input correct values of function into
 				end
-				get_pinvBFt!(sp,sb)		
-				getCoef!(sp) 		
+				make_pinvBFt!(sp,sb)		
+				makeCoef!(sp) 		
 
-				# get basis on random point
+				# make basis on random point
 				NumObs = 10
 				X = Vector{Float64}[Array{Float64}(1) for i = 1:NumObs]
 				for i in 1:NumObs
@@ -121,7 +121,7 @@ module SmolyakTest
 				makeBasis!(sbX)
 				spX = SmolyakPoly(sbX)
 				copy!(spX.Coef,sp.Coef) 		
-				getValue!(spX,sbX) # Interpolated Values
+				makeValue!(spX,sbX) # Interpolated Values
 
 				for i in 1:NumObs
 					@fact spX.Value[i] --> roughly(truefun(X[i]))
@@ -142,17 +142,17 @@ module SmolyakTest
 				for i in 1:sb.NumPts
 					sp.Value[i] = truefun(sg.xGrid[i]) 	# Use truefun to input correct values of function into
 				end
-				get_pinvBFt!(sp,sb)		
-				getCoef!(sp) 		
+				make_pinvBFt!(sp,sb)		
+				makeCoef!(sp) 		
 
-				# get basis on random point
+				# make basis on random point
 				NumObs = 10
 				X = Vector{Float64}[ Float64[lb[d]+( ub[d]- lb[d])*rand() for d in 1:D] for i in 1:NumObs]
 				sbX = SmolyakBasis(X,mu,lb,ub,0,0)
 				makeBasis!(sbX)
 				spX = SmolyakPoly(sbX)
 				copy!(spX.Coef,sp.Coef) 		
-				getValue!(spX,sbX) # Interpolated Values
+				makeValue!(spX,sbX) # Interpolated Values
 
 				for i in 1:NumObs
 					@fact spX.Value[i] --> roughly(truefun(X[i]))
@@ -174,17 +174,17 @@ module SmolyakTest
 				for i in 1:sb.NumPts
 					sp.Value[i] = truefun(sg.xGrid[i]) 	# Use truefun to input correct values of function into
 				end
-				get_pinvBFt!(sp,sb)		
-				getCoef!(sp) 		
+				make_pinvBFt!(sp,sb)		
+				makeCoef!(sp) 		
 
-				# get basis on random point
+				# make basis on random point
 				NumObs = 10
 				X = Vector{Float64}[ Float64[lb[d]+( ub[d]- lb[d])*rand() for d in 1:D] for i in 1:NumObs]
 				sbX = SmolyakBasis(X,mu,lb,ub,0,0)
 				makeBasis!(sbX)
 				spX = SmolyakPoly(sbX)
 				copy!(spX.Coef,sp.Coef) 		
-				getValue!(spX,sbX) # Interpolated Values
+				makeValue!(spX,sbX) # Interpolated Values
 
 				for i in 1:NumObs
 					@fact spX.Value[i] --> roughly(truefun(X[i]))
@@ -205,17 +205,17 @@ module SmolyakTest
 				for i in 1:sb.NumPts
 					sp.Value[i] = truefun(sg.xGrid[i]) 	# Use truefun to input correct values of function into
 				end
-				get_pinvBFt!(sp,sb)		
-				getCoef!(sp) 		
+				make_pinvBFt!(sp,sb)		
+				makeCoef!(sp) 		
 
-				# get basis on random point
+				# make basis on random point
 				NumObs = 10
 				X = Vector{Float64}[ Float64[lb[d]+( ub[d]- lb[d])*rand() for d in 1:D] for i in 1:NumObs]
 				sbX = SmolyakBasis(X,mu,lb,ub,0,0)
 				makeBasis!(sbX)
 				spX = SmolyakPoly(sbX)
 				copy!(spX.Coef,sp.Coef) 		
-				getValue!(spX,sbX) # Interpolated Values
+				makeValue!(spX,sbX) # Interpolated Values
 
 				if mu_ == 1
 					println("approximation level mu=1 is too low in 4D with multiplicative component.")
