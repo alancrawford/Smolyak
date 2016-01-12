@@ -512,7 +512,7 @@ end
 # New state vector -> applicable when sb.x is a vector
 function updateBasis!(sb::SmolyakBasis,x::Vector{Float64},N::Int64=sb.NumDerivArgs)
 	new_x!(sb,x)
-	makeBasis(sb,N)
+	makeBasis!(sb,N)
 end
 
 function show(io::IO, sb::SmolyakBasis)
