@@ -159,7 +159,7 @@ type SmolyakBasis
 	d2BFdx2 	:: AAAA{Float64}			# 2nd derivative basis funs wrt x
 
 	# Constructor function with conformable memory allocations. Need to makeBasis!(sb) to fill it in.
-	function SmolyakBasis(sg::SmolyakGrid,NumDeriv::Int64=2,NumDerivArgs::Int64=sg.D)
+	function SmolyakBasis(sg::SmolyakGrid; NumDeriv::Int64=2,NumDerivArgs::Int64=sg.D)
 		
 		# Components for evaluation of Basis Functions
 		NumBF = length(sg.Binds)
@@ -209,7 +209,7 @@ type SmolyakBasis
 			BF, dBFdz, d2BFdz2, dzdx, d2zdx2, dBFdx, d2BFdx2)
 	end
 
-	function SmolyakBasis(x::VecOrAA{Float64},sg::SmolyakGrid,NumDeriv::Int64=2,NumDerivArgs::Int64=sg.D)
+	function SmolyakBasis(x::VecOrAA{Float64},sg::SmolyakGrid;NumDeriv::Int64=2,NumDerivArgs::Int64=sg.D)
 		
 		if isa(x,Vector{Float64})  
 			z = Array{Float64}(sg.D) 
@@ -253,7 +253,7 @@ type SmolyakBasis
 		d2zdx2 = zeros(Float64,NumDerivArgs) 
 		
 		dBFdx = AA{Float64}[[ones(Float64,NumBF) 
-					for i in 1:sg.D] 
+					for i in 1:NumDerivArgs] 
 					for n in 1:NumPts]			#= dBFdz[n][i][p] where n = 1:NumGrdPts, 
 														 i is position of 1st derivative,and p=1:NumBF =#
 		d2BFdx2 = AAA{Float64}[[[ones(Float64,NumBF) 
@@ -270,15 +270,16 @@ type SmolyakBasis
 
 	# Constructor function without Smolyak Grid Call
 	function SmolyakBasis(x::VecOrAA{Float64}, mu::ScalarOrVec{Int64},
-							lb::Vector{Float64}=-1*ones(Float64,length(mu)), ub::Vector{Float64}=ones(Float64,length(mu)),
+							lb::Vector{Float64}=-1*ones(Float64,length(mu)), ub::Vector{Float64}=ones(Float64,length(mu));
 							NumDeriv::Int64=2,NumDerivArgs::Int64=length(mu),D::Int64=length(mu))
 		
 		NumGrdPts, Ginds = SmolIdx(tuple(mu...))
 		Binds = Vector{Int64}[Array{Int64}(D) for r in 1:NumGrdPts]
 		makeBasisIdx!(Binds,Ginds,tuple(mu...)) # Basis Function Indices
-		z = Vector{Float64}[Array{Float64}(D) for r in 1:length(x)]
+		z = isa(x,Vector{Float64}) ? Vector{Float64}(D) :
+			Vector{Float64}[Array{Float64}(D) for r in 1:length(x)]
 		x2z!(x,z,lb,ub) 						#= x should be D x NumPts =#
-		NumPts = length(x) 
+		NumPts = isa(x,Vector{Float64}) ? 1 : length(x) 
 		
 		# Make Grid and Indices
 		

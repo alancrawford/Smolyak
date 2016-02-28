@@ -79,7 +79,7 @@ type SmolyakPoly
 	NumDerivArgs:: Int64 					# 1 to NumDerivArgs 
 	pinvBFt		:: Matrix{Float64} 			# Transpose of Moore-Penrose Pseudo Inverse of sb.BF (for case where NumPts ≥ NumCoef)
 
-	function SmolyakPoly(sb::SmolyakBasis, Coef::Vector=rand(sb.NumBF), NumDeriv::Int64=sb.NumDeriv, NumDerivArgs::Int64=sb.NumDerivArgs, NumPts::Int64=sb.NumPts)		
+	function SmolyakPoly(sb::SmolyakBasis; Coef::Vector=rand(sb.NumBF), NumDeriv::Int64=sb.NumDeriv, NumDerivArgs::Int64=sb.NumDerivArgs, NumPts::Int64=sb.NumPts)		
 		
 		Value = Vector{Float64}(NumPts)
 		Grad = Vector{Float64}[Array{Float64}(NumDerivArgs) for n in 1:NumPts]
@@ -92,7 +92,7 @@ type SmolyakPoly
 end
 
 # In place fn value update
-function makeValue!(sp::SmolyakPoly,sb::SmolyakBasis,Coef::Vector{Float64}=sp.Coef)
+function makeValue!(sp::SmolyakPoly,sb::SmolyakBasis;Coef::Vector{Float64}=sp.Coef)
 	for n in 1:sb.NumPts
 		sp.Value[n] = dot(sb.BF[n],Coef)
 	end
@@ -100,7 +100,7 @@ function makeValue!(sp::SmolyakPoly,sb::SmolyakBasis,Coef::Vector{Float64}=sp.Co
 end
 
 # In place 1st Derivative Update
-function makeGrad!(sp::SmolyakPoly,sb::SmolyakBasis,Coef::Vector{Float64}=sp.Coef,N::Int64=sp.NumDerivArgs)
+function makeGrad!(sp::SmolyakPoly,sb::SmolyakBasis;Coef::Vector{Float64}=sp.Coef,N::Int64=sp.NumDerivArgs)
 	for i in 1:N, n in 1:sb.NumPts,
 		sp.Grad[n][i] = dot(sb.dBFdx[n][i],Coef)
 	end
@@ -108,7 +108,7 @@ function makeGrad!(sp::SmolyakPoly,sb::SmolyakBasis,Coef::Vector{Float64}=sp.Coe
 end
 
 # In place 2nd Derivative Update
-function makeHess!(sp::SmolyakPoly,sb::SmolyakBasis,Coef::Vector{Float64}=sp.Coef,N::Int64=sp.NumDerivArgs)
+function makeHess!(sp::SmolyakPoly,sb::SmolyakBasis;Coef::Vector{Float64}=sp.Coef,N::Int64=sp.NumDerivArgs)
 	for i in 1:N, j in i:N, n in 1:sb.NumPts,
 		k = j-i+1
 		sp.Hess[n][i,j] = dot(sb.d2BFdx2[n][i][k],Coef)
@@ -131,7 +131,7 @@ function make_pinvBFt!(sp::SmolyakPoly,sb::SmolyakBasis)
 end
 
 # Calculate New Coefficient using Least Squares with precalculate Moore-Penrose Pseudo-Inverse - may be more efficient than backslash if pinvBF not changing
-function MakeCoef!(sp::SmolyakPoly,f::Vector{Float64}=sp.Value)
+function makeCoef!(sp::SmolyakPoly;f::Vector{Float64}=sp.Value)
 	for k in 1:sp.NumCoef
 		s = 0.0
 		for n in 1:sp.NumPts

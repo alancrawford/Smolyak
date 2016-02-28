@@ -119,9 +119,7 @@ to create it.
   d2BFdx2      :: Array{Array{Array{Array{Float64,1},1},1},1}
 =#
 
-NumDeriv=0
-NumDerivArgs=sg.D
-sb = SmolyakBasis(sg,NumDeriv,NumDerivArgs) 	# Create Smolyak Basis Type
+sb = SmolyakBasis(sg;NumDeriv=0,NumDerivArgs=sg.D) 	# Create Smolyak Basis Type
 makeBasis!(sb) 									# This sets up basis matrix: sb.BF
 
 
@@ -211,7 +209,7 @@ for i in 1:NumObs
 	f[i] = truefun(X[i])
 end
 
-sbX = SmolyakBasis(X,mu,Xlow,Xhigh,NumDeriv,NumDerivArgs)
+sbX = SmolyakBasis(X,mu,Xlow,Xhigh;NumDeriv=0,NumDerivArgs=sg.D)
 makeBasis!(sbX)
 spX = SmolyakPoly(sbX)
 copy!(spX.Coef,sp.Coef) 		# Copy over Coefficient from Collocation

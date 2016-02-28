@@ -1,11 +1,10 @@
 # TEST OF DERIVATIVES USING D = 2,  µ = 1 if using [-1,1]^2 
 
-using Smolyak
+using Smolyak, FactCheck
 D = 2
 mu = ones(Int64,D)
 sg = SmolyakGrid(mu)
-NumDeriv = 2
-sb = SmolyakBasis(sg,NumDeriv)
+sb = SmolyakBasis(sg;NumDeriv=2)
 makeBasis!(sb)
 
 # Polynomial
@@ -15,7 +14,9 @@ makeValue!(sp,sb)
 makeGrad!(sp,sb)
 makeHess!(sp,sb)
 
+# ---------------------------------------------------------------------------
 #= Analytical answers =#
+
 z1 = Float64[]
 z2 = Float64[]
 for i in 1:sg.NumGrdPts
@@ -55,15 +56,26 @@ end
 
 d2BFdz12 = [[0.0 for i in 1:5] for j in 1:5]
 
-# Tests
-Passed = 1
-for i in 1:5, j in 1:5
-	Passed *= isapprox(BF[i][j],sb.BF[i][j])
-	Passed *= isapprox(dBFdz1[i][j],sb.dBFdz[i][1][j])
-	Passed *= isapprox(dBFdz2[i][j],sb.dBFdz[i][2][j])
-	Passed *= isapprox(d2BFdz11[i][j],sb.d2BFdz2[i][1][1][j])
-	Passed *= isapprox(d2BFdz22[i][j],sb.d2BFdz2[i][2][1][j])
-	Passed *= isapprox(d2BFdz12[i][j],sb.d2BFdz2[i][1][2][j])
-end
+# ---------------------------------------------------------------------------
 
-==(Passed,1) ? print("Passed the tests") : print("Problem: Didn't pass test")
+# Tests
+facts("Does Smolyak Package Calculate Correct Values for:") do
+	context("Basis functions") do
+		for i in 1:sg.NumGrdPts, j in 1:sb.NumBF
+			@fact isapprox(BF[i][j],sb.BF[i][j]) --> true
+		end
+	end
+	context("1st derivatives") do
+		for i in 1:sg.NumGrdPts, j in 1:sb.NumBF
+			@fact isapprox(dBFdz1[i][j],sb.dBFdz[i][1][j]) --> true
+			@fact isapprox(dBFdz2[i][j],sb.dBFdz[i][2][j]) --> true
+		end
+	end
+	context("2nd derivatives") do 
+		for i in 1:sg.NumGrdPts, j in 1:sb.NumBF
+			@fact isapprox(d2BFdz11[i][j],sb.d2BFdz2[i][1][1][j]) --> true
+			@fact isapprox(d2BFdz22[i][j],sb.d2BFdz2[i][2][1][j]) --> true
+			@fact isapprox(d2BFdz12[i][j],sb.d2BFdz2[i][1][2][j]) --> true
+		end
+	end
+end
