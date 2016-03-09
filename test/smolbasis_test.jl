@@ -9,7 +9,7 @@ makeBasis!(sb)
 
 # Polynomial
 coef = rand(sb.NumBF)
-sp = SmolyakPoly(sb,coef)
+sp = SmolyakPoly(sb;Coef=coef)
 makeValue!(sp,sb)
 makeGrad!(sp,sb)
 makeHess!(sp,sb)
