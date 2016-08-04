@@ -42,11 +42,13 @@ typealias VecOrAA{T} Union{Vector{T},AA{T}}
 
 # Load Files
 include("smolgrid.jl")
+include("smolyakHD.jl")
 include("smolbasis.jl")
 include("smolpoly.jl")
 
 # Make functions defined in the module available =#
 export 	SmolyakGrid, makeGrid!, x2z, z2x, x2z!, z2x!,
+		SmolyakHD, makeHDSmolIdx, makeNumGridPts,
 		SmolyakBasis, makeBasis!, new_x!, updateBasis!,
 		SmolyakPoly, makeValue!, makeGrad!, makeHess!, make_pinvBFt!, makeCoef!
 

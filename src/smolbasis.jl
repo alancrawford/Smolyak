@@ -268,6 +268,65 @@ type SmolyakBasis
 			BF, dBFdz, d2BFdz2, dzdx, d2zdx2, dBFdx, d2BFdx2)
 	end 
 
+	function SmolyakBasis(x::VecOrAA{Float64},shd::SmolyakHD;NumDeriv::Int64=2,NumDerivArgs::Int64=shd.D)
+		
+		if isa(x,Vector{Float64})  
+			z = Array{Float64}(shd.D) 
+			NumPts = 1
+		else
+			z = Vector{Float64}[Array{Float64}(shd.D) for r in 1:length(x)]
+			NumPts = length(x)  
+		end
+		x2z!(x,z,shd.lb,shd.ub) 						#= x should be D x NumPts =#
+
+		# Components for evaluation of Basis Functions
+		NumBF = length(shd.Binds)
+		max_order = 0
+		for i in eachindex(shd.Binds), j in 1:shd.D
+			max_order = max(max_order,shd.Binds[i][j]+1)
+		end
+
+		# Preallocate memory for basis functions
+		T = Array{Float64}(shd.D, max_order) 	
+		dT = similar(T)
+		d2T = similar(T)
+
+		# For Basis Functions and transformation back: Allocate memory for BF, pinvBF, and derivatives -> then makeBasis!(sb)
+		BF = Vector{Float64}[ones(Float64,NumBF) 
+					for n in 1:NumPts]			# BF[n][p] where n =1:NumGrdPts, p=1:NumBF
+		
+		dBFdz = AA{Float64}[[ones(Float64,NumBF) 
+					for i in 1:NumDerivArgs] 
+					for n in 1:NumPts]			#= dBFdz[n][i][p] where n = 1:NumGrdPts, 
+														 i is position of 1st derivative,and p=1:NumBF =#
+		d2BFdz2 = AAA{Float64}[[[ones(Float64,NumBF) 
+					for i in k:NumDerivArgs]
+					for k in 1:NumDerivArgs]
+					for n in 1:NumPts] 			#= d2BFdz2[n][i][k][p] where n =1:NumGrdPts,
+														 i is position of 1st derivative, 
+														 k = j - i + 1 where j in position of 2nd derivative, and p=1:NumBF =#
+		dzdx  = Float64[]
+		for i in 1:shd.D
+			push!(dzdx,2/(shd.ub[i] - shd.lb[i]))
+		end
+		d2zdx2 = zeros(Float64,NumDerivArgs) 
+		
+		dBFdx = AA{Float64}[[ones(Float64,NumBF) 
+					for i in 1:NumDerivArgs] 
+					for n in 1:NumPts]			#= dBFdz[n][i][p] where n = 1:NumGrdPts, 
+														 i is position of 1st derivative,and p=1:NumBF =#
+		d2BFdx2 = AAA{Float64}[[[ones(Float64,NumBF) 
+					for i in k:NumDerivArgs]
+					for k in 1:NumDerivArgs]
+					for n in 1:NumPts] 			#= d2BFdz2[n][i][k][p] where n =1:NumGrdPts,
+														i is position of 1st derivative, 
+														k = j - i + 1 where j in position of 2nd derivative, and p=1:NumBF =#
+		new(shd.D, shd.mu,  shd.lb, shd.ub, shd.Binds, 
+			NumPts, NumBF, NumDeriv, NumDerivArgs, max_order,
+			x, z, T, dT, d2T, 
+			BF, dBFdz, d2BFdz2, dzdx, d2zdx2, dBFdx, d2BFdx2)
+	end 
+
 	# Constructor function without Smolyak Grid Call
 	function SmolyakBasis(x::VecOrAA{Float64}, mu::ScalarOrVec{Int64},
 							lb::Vector{Float64}=-1*ones(Float64,length(mu)), ub::Vector{Float64}=ones(Float64,length(mu));
