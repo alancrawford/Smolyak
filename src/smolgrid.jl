@@ -73,7 +73,7 @@ type SmolyakGrid
 		new(D, mu, NumGrdPts, lb, ub, z, x, Binds)
 	end
 
-	function SmolyakGrid(mu::ScalarOrVec{Int64},lb::Vector{Int64}=-1*ones(Float64,length(mu)), ub::Vector{Int64}=ones(Float64,length(mu)),D::Int64=length(mu))
+	function SmolyakGrid(mu::ScalarOrVec{Int64},lb::Vector{Int64}, ub::Vector{Int64},D::Int64=length(mu))
 		
 		lb_float = convert(Vector{Float64},lb)
 		ub_float = convert(Vector{Float64},ub)

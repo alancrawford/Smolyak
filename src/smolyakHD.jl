@@ -39,7 +39,7 @@ function makeHDSmolIdx(mu::Vector{Int64})
 		end
 	end
 
-	GI = unique(Out[sum(Out,2).<=D+mu_max,:],1)
+	GI = unique(Out[find(sum(Out,2).<=D+mu_max),:],1)
 	anstrphc_indx = ones(Int64,size(GI,1))
 	for i in CartesianRange(size(GI))
 		if anstrphc_indx[i.I[1]]==0
