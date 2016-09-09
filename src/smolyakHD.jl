@@ -51,7 +51,7 @@ function makeHDSmolIdx(mu::Vector{Int64})
 	GridIdx = GI[findin(anstrphc_indx,1),:]
 	Res = Vector{Int64}[]
 	for i in 1:size(GridIdx,1)
-		push!(Res, slice(GridIdx,i,:))
+		push!(Res, view(GridIdx,i,:))
 	end	
 
 	return Res

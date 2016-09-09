@@ -27,31 +27,31 @@ end
 InputBF = hcat(ones(sg.NumGrdPts), z1, 2z1.^2-1, z2, 2z2.^2-1);
 BF = []
 for i in 1:5
-	push!(BF,slice(InputBF,i,:))
+	push!(BF,view(InputBF,i,:))
 end
 
 InputdBFdz1  = hcat(zeros(sg.NumGrdPts), ones(sg.NumGrdPts), 4z1, zeros(sg.NumGrdPts), zeros(sg.NumGrdPts));
 dBFdz1 = []
 for i in 1:5
-	push!( dBFdz1,slice(InputdBFdz1,i,:) )
+	push!( dBFdz1,view(InputdBFdz1,i,:) )
 end
 
 InputdBFdz2  = hcat(zeros(sg.NumGrdPts), zeros(sg.NumGrdPts), zeros(sg.NumGrdPts), ones(sg.NumGrdPts), 4z2);
 dBFdz2 = []
 for i in 1:5
-	push!( dBFdz2,slice(InputdBFdz2,i,:) )
+	push!( dBFdz2,view(InputdBFdz2,i,:) )
 end
 
 Inputd2BFdz11 = hcat(zeros(sg.NumGrdPts), zeros(sg.NumGrdPts), 4ones(sg.NumGrdPts), zeros(sg.NumGrdPts), zeros(sg.NumGrdPts));
 d2BFdz11 = []
 for i in 1:5
-	push!(d2BFdz11,slice(Inputd2BFdz11,i,:) )
+	push!(d2BFdz11,view(Inputd2BFdz11,i,:) )
 end
 
 Inputd2BFdz22 = hcat(zeros(sg.NumGrdPts), zeros(sg.NumGrdPts), zeros(sg.NumGrdPts), zeros(sg.NumGrdPts), 4ones(sg.NumGrdPts));
 d2BFdz22 = []
 for i in 1:5
-	push!(d2BFdz22,slice(Inputd2BFdz22,i,:) )
+	push!(d2BFdz22,view(Inputd2BFdz22,i,:) )
 end
 
 d2BFdz12 = [[0.0 for i in 1:5] for j in 1:5]
