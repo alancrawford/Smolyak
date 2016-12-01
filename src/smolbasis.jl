@@ -21,8 +21,8 @@ Judd, Maliar, Maliar, Valero (2014). The code is designed for Julia v0.4.
 - `NumDeriv :: Int64`	: Number of derivatives ∈ {0,1,2}
 - `NumDerivArgs :: Int64`	: 1st NumDerivArgs used (i.e. 1:NumDerivArgs)
 - `max_order :: Int64` : Maximum order of polynomial for T
-- `x :: VecOrAA{Float64}` : Vector of coordinates at which SB is evaluated 
-- `z :: VecOrAA{Float64}`	: Transformed vector of coordinates into [-1,1]
+- `x :: Array` : Vector of coordinates at which SB is evaluated 
+- `z :: Array`	: Transformed vector of coordinates into [-1,1]
 - `T :: Matrix{Float64}` : 1-dim Chebyshev basis fns: level
 - `dT :: Matrix{Float64}` : 1-dim Chebyshev basis fns: 1st derivative
 - `d2T :: Matrix{Float64}` : 1-dim Chebyshev basis fns: 2nd derivative
@@ -145,8 +145,8 @@ type SmolyakBasis
 	NumDeriv	:: Int64					# Number of derivatives: {0,1,2}
 	NumDerivArgs:: Int64					# 1st NumDerivArgs used (i.e. 1:NumDerivArgs)
 	max_order	:: Int64 					# Maximum order of polynomial for T
-	x 			:: VecOrAA{Float64} 		# Vector of coordinates at which SB is evaluated 
-	z 			:: VecOrAA{Float64} 		# Transformed vector of coordinates into [-1,1]
+	x 			:: Array					# Vector of coordinates at which SB is evaluated 
+	z 			:: Array 					# Transformed vector of coordinates into [-1,1]
 	T 			:: Matrix{Float64} 			# 1-dim Chebyshev basis fn: level
 	dT 			:: Matrix{Float64} 			# 1-dim Chebyshev basis fn: 1st derivative
 	d2T 		:: Matrix{Float64} 			# 1-dim Chebyshev basis fn: 2nd derivative
@@ -209,7 +209,7 @@ type SmolyakBasis
 			BF, dBFdz, d2BFdz2, dzdx, d2zdx2, dBFdx, d2BFdx2)
 	end
 
-	function SmolyakBasis(x::VecOrAA{Float64},sg::SmolyakGrid;NumDeriv::Int64=2,NumDerivArgs::Int64=sg.D)
+	function SmolyakBasis(x::Array,sg::SmolyakGrid;NumDeriv::Int64=2,NumDerivArgs::Int64=sg.D)
 		
 		if isa(x,Vector{Float64})  
 			z = Array{Float64}(sg.D) 
@@ -268,7 +268,7 @@ type SmolyakBasis
 			BF, dBFdz, d2BFdz2, dzdx, d2zdx2, dBFdx, d2BFdx2)
 	end 
 
-	function SmolyakBasis(x::VecOrAA{Float64},shd::SmolyakHD;NumDeriv::Int64=2,NumDerivArgs::Int64=shd.D)
+	function SmolyakBasis(x::Array,shd::SmolyakHD;NumDeriv::Int64=2,NumDerivArgs::Int64=shd.D)
 		
 		if isa(x,Vector{Float64})  
 			z = Array{Float64}(shd.D) 
@@ -328,7 +328,7 @@ type SmolyakBasis
 	end 
 
 	# Constructor function without Smolyak Grid Call
-	function SmolyakBasis(x::VecOrAA{Float64}, mu::ScalarOrVec{Int64},
+	function SmolyakBasis(x::Array, mu::ScalarOrVec{Int64},
 							lb::Vector{Float64}=-1*ones(Float64,length(mu)), ub::Vector{Float64}=ones(Float64,length(mu));
 							NumDeriv::Int64=2,NumDerivArgs::Int64=length(mu),D::Int64=length(mu))
 		

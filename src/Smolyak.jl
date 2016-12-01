@@ -25,7 +25,6 @@ typealias AM{T} Array{Matrix{T},1}
 typealias AAA{T} Array{Array{Array{T,1},1},1}
 typealias AAAA{T} Array{Array{Array{Array{T,1},1},1},1}
 typealias ScalarOrVec{T} Union{T,Vector{T}}
-typealias VecOrAA{T} Union{Vector{T},AA{T}}
 ```
 """
 module Smolyak
@@ -38,7 +37,7 @@ typealias AM{T} Array{Matrix{T},1}
 typealias AAA{T} Array{Array{Array{T,1},1},1}
 typealias AAAA{T} Array{Array{Array{Array{T,1},1},1},1}
 typealias ScalarOrVec{T} Union{T,Vector{T}}
-typealias VecOrAA{T} Union{Vector{T},AA{T}}
+#typealias VecOrAA{T} Union{Vector{T},AA{T}}
 
 # Load Files
 include("smolgrid.jl")
