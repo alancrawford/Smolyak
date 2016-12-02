@@ -333,8 +333,8 @@ type SmolyakBasis
 						for n in 1:NumPts]			#= dBFdz[n][i][p] where n = 1:NumGrdPts, 
 															 i is position of 1st derivative,and p=1:NumBF =#
 			dzdx  = Float64[]
-			for i in 1:sg.D
-				push!(dzdx,2/(sg.ub[i] - sg.lb[i]))
+			for i in 1:shd.D
+				push!(dzdx,2/(shd.ub[i] - shd.lb[i]))
 			end
 			d2BFdz2 = AAA{Float64}[]
 			d2zdx2 = Float64[]
@@ -345,8 +345,8 @@ type SmolyakBasis
 						for n in 1:NumPts]			#= dBFdz[n][i][p] where n = 1:NumGrdPts, 
 															 i is position of 1st derivative,and p=1:NumBF =#
 			dzdx  = Float64[]
-			for i in 1:sg.D
-				push!(dzdx,2/(sg.ub[i] - sg.lb[i]))
+			for i in 1:shd.D
+				push!(dzdx,2/(shd.ub[i] - shd.lb[i]))
 			end
 			d2BFdz2 = AAA{Float64}[[[ones(Float64,NumBF) 
 						for i in k:NumDerivArgs]
@@ -409,8 +409,8 @@ type SmolyakBasis
 						for n in 1:NumPts]			#= dBFdz[n][i][p] where n = 1:NumGrdPts, 
 															 i is position of 1st derivative,and p=1:NumBF =#
 			dzdx  = Float64[]
-			for i in 1:sg.D
-				push!(dzdx,2/(sg.ub[i] - sg.lb[i]))
+			for i in 1:D
+				push!(dzdx,2/(ub[i] - lb[i]))
 			end
 			d2BFdz2 = AAA{Float64}[]
 			d2zdx2 = Float64[]
@@ -421,8 +421,8 @@ type SmolyakBasis
 						for n in 1:NumPts]			#= dBFdz[n][i][p] where n = 1:NumGrdPts, 
 															 i is position of 1st derivative,and p=1:NumBF =#
 			dzdx  = Float64[]
-			for i in 1:sg.D
-				push!(dzdx,2/(sg.ub[i] - sg.lb[i]))
+			for i in 1:D
+				push!(dzdx,2/(ub[i] - lb[i]))
 			end
 			d2BFdz2 = AAA{Float64}[[[ones(Float64,NumBF) 
 						for i in k:NumDerivArgs]
