@@ -68,7 +68,7 @@ and a Smolyak Grid is defined call:
 
 where:
 
-- `x :: VecOrAA{Float64}`
+- `x :: Array`
 - `sg :: SmolyakGrid`
 - `NumDeriv :: Int64=2`
 - `NumDerivArgs :: Int64=sg.D`
@@ -82,7 +82,7 @@ without specifying a Smolyak Grid call:
 		
 where:
 
-- `x :: VecOrAA{Float64}` 
+- `x :: Array` 
 - `mu :: ScalarOrVec{Int64}`
 - `lb :: Vector{Float64} = -1*ones(Float64,D)`
 - `ub :: Vector{Float64} = ones(Float64,D)`
@@ -174,35 +174,48 @@ type SmolyakBasis
 		d2T = similar(T)
 		
 		# For Basis Functions and transformation back: Allocate memory for BF, pinvBF, and derivatives -> then makeBasis!(sb)
+		NumDerivArgs = max(1,NumDerivArgs)
 		BF = Vector{Float64}[ones(Float64,NumBF) 
-					for n in 1:sg.NumGrdPts]			# BF[n][p] where n =1:NumGrdPts, p=1:NumBF
+						for n in 1:sg.NumGrdPts]			# BF[n][p] where n =1:NumGrdPts, p=1:NumBF
 		
-		dBFdz = AA{Float64}[[ones(Float64,NumBF) 
-					for i in 1:NumDerivArgs] 
-					for n in 1:sg.NumGrdPts]			#= dBFdz[n][i][p] where n = 1:NumGrdPts, 
-														 i is position of 1st derivative,and p=1:NumBF =#
-		d2BFdz2 = AAA{Float64}[[[ones(Float64,NumBF) 
-					for i in k:NumDerivArgs]
-					for k in 1:NumDerivArgs]
-					for n in 1:sg.NumGrdPts] 			#= d2BFdz2[n][i][k][p] where n =1:NumGrdPts,
-														 i is position of 1st derivative, 
-														 k = j - i + 1 where j in position of 2nd derivative, and p=1:NumBF =#
-		dzdx  = Float64[]
-		for i in 1:sg.D
-			push!(dzdx,2/(sg.ub[i] - sg.lb[i]))
+		if NumDeriv==0
+			dBFdz = AA{Float64}[]
+			dzdx  = Float64[]
+			d2BFdz2 = AAA{Float64}[]
+			d2zdx2 = Float64[]
+		elseif NumDeriv==1
+			dBFdz = AA{Float64}[[ones(Float64,NumBF) 
+						for i in 1:NumDerivArgs] 
+						for n in 1:sg.NumGrdPts]			#= dBFdz[n][i][p] where n = 1:NumGrdPts, 
+															 i is position of 1st derivative,and p=1:NumBF =#
+			dzdx  = Float64[]
+			for i in 1:sg.D
+				push!(dzdx,2/(sg.ub[i] - sg.lb[i]))
+			end
+			d2BFdz2 = AAA{Float64}[]
+			d2zdx2 = Float64[]
+		else
+			NumDerivArgs>2 ? println("****** MAX OF 2 DERIVATIVES ******") : nothing
+			dBFdz = AA{Float64}[[ones(Float64,NumBF) 
+						for i in 1:NumDerivArgs] 
+						for n in 1:sg.NumGrdPts]			#= dBFdz[n][i][p] where n = 1:NumGrdPts, 
+															 i is position of 1st derivative,and p=1:NumBF =#
+			dzdx  = Float64[]
+			for i in 1:sg.D
+				push!(dzdx,2/(sg.ub[i] - sg.lb[i]))
+			end
+			d2BFdz2 = AAA{Float64}[[[ones(Float64,NumBF) 
+						for i in k:NumDerivArgs]
+						for k in 1:NumDerivArgs]
+						for n in 1:sg.NumGrdPts] 			#= d2BFdz2[n][i][k][p] where n =1:NumGrdPts,
+															 i is position of 1st derivative, 
+															 k = j - i + 1 where j in position of 2nd derivative, and p=1:NumBF =#
+			d2zdx2 = zeros(Float64,NumDerivArgs) 
 		end
-		d2zdx2 = zeros(Float64,NumDerivArgs) 
-		
-		dBFdx = AA{Float64}[[ones(Float64,NumBF) 
-					for i in 1:NumDerivArgs] 
-					for n in 1:sg.NumGrdPts]			#= dBFdz[n][i][p] where n = 1:NumGrdPts, 
-														 i is position of 1st derivative,and p=1:NumBF =#
-		d2BFdx2 = AAA{Float64}[[[ones(Float64,NumBF) 
-					for i in k:NumDerivArgs]
-					for k in 1:NumDerivArgs]
-					for n in 1:sg.NumGrdPts] 			#= d2BFdz2[n][i][k][p] where n =1:NumGrdPts,
-														i is position of 1st derivative, 
-														k = j - i + 1 where j in position of 2nd derivative, and p=1:NumBF =#	
+
+		dBFdx = deepcopy(dBFdz)
+		d2BFdx2 = deepcopy(d2BFdz2)	
+
 		new(sg.D, sg.mu,  sg.lb, sg.ub, sg.Binds, 
 			sg.NumGrdPts, NumBF, NumDeriv, NumDerivArgs, max_order,
 			sg.xGrid, sg.zGrid, T, dT, d2T, 
@@ -233,35 +246,48 @@ type SmolyakBasis
 		d2T = similar(T)
 
 		# For Basis Functions and transformation back: Allocate memory for BF, pinvBF, and derivatives -> then makeBasis!(sb)
+		NumDerivArgs = max(1,NumDerivArgs)
 		BF = Vector{Float64}[ones(Float64,NumBF) 
-					for n in 1:NumPts]			# BF[n][p] where n =1:NumGrdPts, p=1:NumBF
+						for n in 1:NumPts]			# BF[n][p] where n =1:NumGrdPts, p=1:NumBF
 		
-		dBFdz = AA{Float64}[[ones(Float64,NumBF) 
-					for i in 1:NumDerivArgs] 
-					for n in 1:NumPts]			#= dBFdz[n][i][p] where n = 1:NumGrdPts, 
-														 i is position of 1st derivative,and p=1:NumBF =#
-		d2BFdz2 = AAA{Float64}[[[ones(Float64,NumBF) 
-					for i in k:NumDerivArgs]
-					for k in 1:NumDerivArgs]
-					for n in 1:NumPts] 			#= d2BFdz2[n][i][k][p] where n =1:NumGrdPts,
-														 i is position of 1st derivative, 
-														 k = j - i + 1 where j in position of 2nd derivative, and p=1:NumBF =#
-		dzdx  = Float64[]
-		for i in 1:sg.D
-			push!(dzdx,2/(sg.ub[i] - sg.lb[i]))
+		if NumDeriv==0
+			dBFdz = AA{Float64}[]
+			dzdx  = Float64[]
+			d2BFdz2 = AAA{Float64}[]
+			d2zdx2 = Float64[]
+		elseif NumDeriv==1
+			dBFdz = AA{Float64}[[ones(Float64,NumBF) 
+						for i in 1:NumDerivArgs] 
+						for n in 1:NumPts]			#= dBFdz[n][i][p] where n = 1:NumGrdPts, 
+															 i is position of 1st derivative,and p=1:NumBF =#
+			dzdx  = Float64[]
+			for i in 1:sg.D
+				push!(dzdx,2/(sg.ub[i] - sg.lb[i]))
+			end
+			d2BFdz2 = AAA{Float64}[]
+			d2zdx2 = Float64[]
+		else
+			NumDerivArgs>2 ? println("****** MAX OF 2 DERIVATIVES ******") : nothing
+			dBFdz = AA{Float64}[[ones(Float64,NumBF) 
+						for i in 1:NumDerivArgs] 
+						for n in 1:NumPts]			#= dBFdz[n][i][p] where n = 1:NumGrdPts, 
+															 i is position of 1st derivative,and p=1:NumBF =#
+			dzdx  = Float64[]
+			for i in 1:sg.D
+				push!(dzdx,2/(sg.ub[i] - sg.lb[i]))
+			end
+			d2BFdz2 = AAA{Float64}[[[ones(Float64,NumBF) 
+						for i in k:NumDerivArgs]
+						for k in 1:NumDerivArgs]
+						for n in 1:NumPts] 			#= d2BFdz2[n][i][k][p] where n =1:NumGrdPts,
+															 i is position of 1st derivative, 
+															 k = j - i + 1 where j in position of 2nd derivative, and p=1:NumBF =#
+			d2zdx2 = zeros(Float64,NumDerivArgs) 
 		end
-		d2zdx2 = zeros(Float64,NumDerivArgs) 
-		
-		dBFdx = AA{Float64}[[ones(Float64,NumBF) 
-					for i in 1:NumDerivArgs] 
-					for n in 1:NumPts]			#= dBFdz[n][i][p] where n = 1:NumGrdPts, 
-														 i is position of 1st derivative,and p=1:NumBF =#
-		d2BFdx2 = AAA{Float64}[[[ones(Float64,NumBF) 
-					for i in k:NumDerivArgs]
-					for k in 1:NumDerivArgs]
-					for n in 1:NumPts] 			#= d2BFdz2[n][i][k][p] where n =1:NumGrdPts,
-														i is position of 1st derivative, 
-														k = j - i + 1 where j in position of 2nd derivative, and p=1:NumBF =#
+
+		dBFdx = deepcopy(dBFdz)
+		d2BFdx2 = deepcopy(d2BFdz2)	
+
 		new(sg.D, sg.mu,  sg.lb, sg.ub, sg.Binds, 
 			NumPts, NumBF, NumDeriv, NumDerivArgs, max_order,
 			x, z, T, dT, d2T, 
@@ -292,35 +318,48 @@ type SmolyakBasis
 		d2T = similar(T)
 
 		# For Basis Functions and transformation back: Allocate memory for BF, pinvBF, and derivatives -> then makeBasis!(sb)
+		NumDerivArgs = max(1,NumDerivArgs)
 		BF = Vector{Float64}[ones(Float64,NumBF) 
-					for n in 1:NumPts]			# BF[n][p] where n =1:NumGrdPts, p=1:NumBF
+						for n in 1:NumPts]			# BF[n][p] where n =1:NumGrdPts, p=1:NumBF
 		
-		dBFdz = AA{Float64}[[ones(Float64,NumBF) 
-					for i in 1:NumDerivArgs] 
-					for n in 1:NumPts]			#= dBFdz[n][i][p] where n = 1:NumGrdPts, 
-														 i is position of 1st derivative,and p=1:NumBF =#
-		d2BFdz2 = AAA{Float64}[[[ones(Float64,NumBF) 
-					for i in k:NumDerivArgs]
-					for k in 1:NumDerivArgs]
-					for n in 1:NumPts] 			#= d2BFdz2[n][i][k][p] where n =1:NumGrdPts,
-														 i is position of 1st derivative, 
-														 k = j - i + 1 where j in position of 2nd derivative, and p=1:NumBF =#
-		dzdx  = Float64[]
-		for i in 1:shd.D
-			push!(dzdx,2/(shd.ub[i] - shd.lb[i]))
+		if NumDeriv==0
+			dBFdz = AA{Float64}[]
+			dzdx  = Float64[]
+			d2BFdz2 = AAA{Float64}[]
+			d2zdx2 = Float64[]
+		elseif NumDeriv==1
+			dBFdz = AA{Float64}[[ones(Float64,NumBF) 
+						for i in 1:NumDerivArgs] 
+						for n in 1:NumPts]			#= dBFdz[n][i][p] where n = 1:NumGrdPts, 
+															 i is position of 1st derivative,and p=1:NumBF =#
+			dzdx  = Float64[]
+			for i in 1:sg.D
+				push!(dzdx,2/(sg.ub[i] - sg.lb[i]))
+			end
+			d2BFdz2 = AAA{Float64}[]
+			d2zdx2 = Float64[]
+		else
+			NumDerivArgs>2 ? println("****** MAX OF 2 DERIVATIVES ******") : nothing
+			dBFdz = AA{Float64}[[ones(Float64,NumBF) 
+						for i in 1:NumDerivArgs] 
+						for n in 1:NumPts]			#= dBFdz[n][i][p] where n = 1:NumGrdPts, 
+															 i is position of 1st derivative,and p=1:NumBF =#
+			dzdx  = Float64[]
+			for i in 1:sg.D
+				push!(dzdx,2/(sg.ub[i] - sg.lb[i]))
+			end
+			d2BFdz2 = AAA{Float64}[[[ones(Float64,NumBF) 
+						for i in k:NumDerivArgs]
+						for k in 1:NumDerivArgs]
+						for n in 1:NumPts] 			#= d2BFdz2[n][i][k][p] where n =1:NumGrdPts,
+															 i is position of 1st derivative, 
+															 k = j - i + 1 where j in position of 2nd derivative, and p=1:NumBF =#
+			d2zdx2 = zeros(Float64,NumDerivArgs) 
 		end
-		d2zdx2 = zeros(Float64,NumDerivArgs) 
-		
-		dBFdx = AA{Float64}[[ones(Float64,NumBF) 
-					for i in 1:NumDerivArgs] 
-					for n in 1:NumPts]			#= dBFdz[n][i][p] where n = 1:NumGrdPts, 
-														 i is position of 1st derivative,and p=1:NumBF =#
-		d2BFdx2 = AAA{Float64}[[[ones(Float64,NumBF) 
-					for i in k:NumDerivArgs]
-					for k in 1:NumDerivArgs]
-					for n in 1:NumPts] 			#= d2BFdz2[n][i][k][p] where n =1:NumGrdPts,
-														i is position of 1st derivative, 
-														k = j - i + 1 where j in position of 2nd derivative, and p=1:NumBF =#
+
+		dBFdx = deepcopy(dBFdz)
+		d2BFdx2 = deepcopy(d2BFdz2)	
+
 		new(shd.D, shd.mu,  shd.lb, shd.ub, shd.Binds, 
 			NumPts, NumBF, NumDeriv, NumDerivArgs, max_order,
 			x, z, T, dT, d2T, 
@@ -332,9 +371,9 @@ type SmolyakBasis
 							lb::Vector{Float64}=-1*ones(Float64,length(mu)), ub::Vector{Float64}=ones(Float64,length(mu));
 							NumDeriv::Int64=2,NumDerivArgs::Int64=length(mu),D::Int64=length(mu))
 		
-		NumGrdPts, Ginds = SmolIdx(tuple(mu...))
+		NumGrdPts, Ginds = Smolyak.SmolIdx(tuple(mu...))
 		Binds = Vector{Int64}[Array{Int64}(D) for r in 1:NumGrdPts]
-		makeBasisIdx!(Binds,Ginds,tuple(mu...)) # Basis Function Indices
+		Smolyak.makeBasisIdx!(Binds,Ginds,tuple(mu...)) # Basis Function Indices
 		z = isa(x,Vector{Float64}) ? Vector{Float64}(D) :
 			Vector{Float64}[Array{Float64}(D) for r in 1:length(x)]
 		x2z!(x,z,lb,ub) 						#= x should be D x NumPts =#
@@ -355,35 +394,48 @@ type SmolyakBasis
 		d2T = similar(T)
 
 		# For Basis Functions and transformation back: Allocate memory for BF, pinvBF, and derivatives -> then makeBasis!(sb)
+		NumDerivArgs = max(1,NumDerivArgs)
 		BF = Vector{Float64}[ones(Float64,NumBF) 
-					for n in 1:NumPts]			# BF[n][p] where n =1:NumGrdPts, p=1:NumBF
+						for n in 1:NumPts]			# BF[n][p] where n =1:NumGrdPts, p=1:NumBF
 		
-		dBFdz = AA{Float64}[[ones(Float64,NumBF) 
-					for i in 1:NumDerivArgs] 
-					for n in 1:NumPts]			#= dBFdz[n][i][p] where n = 1:NumGrdPts, 
-														 i is position of 1st derivative,and p=1:NumBF =#
-		d2BFdz2 = AAA{Float64}[[[ones(Float64,NumBF) 
-					for i in k:NumDerivArgs]
-					for k in 1:NumDerivArgs]
-					for n in 1:NumPts] 			#= d2BFdz2[n][i][k][p] where n =1:NumGrdPts,
-														 i is position of 1st derivative, 
-														 k = j - i + 1 where j in position of 2nd derivative, and p=1:NumBF =#
-		dzdx  = Float64[]
-		for i in 1:D
-			push!(dzdx,2/(ub[i] - lb[i]))
+		if NumDeriv==0
+			dBFdz = AA{Float64}[]
+			dzdx  = Float64[]
+			d2BFdz2 = AAA{Float64}[]
+			d2zdx2 = Float64[]
+		elseif NumDeriv==1
+			dBFdz = AA{Float64}[[ones(Float64,NumBF) 
+						for i in 1:NumDerivArgs] 
+						for n in 1:NumPts]			#= dBFdz[n][i][p] where n = 1:NumGrdPts, 
+															 i is position of 1st derivative,and p=1:NumBF =#
+			dzdx  = Float64[]
+			for i in 1:sg.D
+				push!(dzdx,2/(sg.ub[i] - sg.lb[i]))
+			end
+			d2BFdz2 = AAA{Float64}[]
+			d2zdx2 = Float64[]
+		else
+			NumDerivArgs>2 ? println("****** MAX OF 2 DERIVATIVES ******") : nothing
+			dBFdz = AA{Float64}[[ones(Float64,NumBF) 
+						for i in 1:NumDerivArgs] 
+						for n in 1:NumPts]			#= dBFdz[n][i][p] where n = 1:NumGrdPts, 
+															 i is position of 1st derivative,and p=1:NumBF =#
+			dzdx  = Float64[]
+			for i in 1:sg.D
+				push!(dzdx,2/(sg.ub[i] - sg.lb[i]))
+			end
+			d2BFdz2 = AAA{Float64}[[[ones(Float64,NumBF) 
+						for i in k:NumDerivArgs]
+						for k in 1:NumDerivArgs]
+						for n in 1:NumPts] 			#= d2BFdz2[n][i][k][p] where n =1:NumGrdPts,
+															 i is position of 1st derivative, 
+															 k = j - i + 1 where j in position of 2nd derivative, and p=1:NumBF =#
+			d2zdx2 = zeros(Float64,NumDerivArgs) 
 		end
-		d2zdx2 = zeros(Float64,NumDerivArgs) 
-		
-		dBFdx = AA{Float64}[[ones(Float64,NumBF) 
-					for i in 1:D] 
-					for n in 1:NumPts]			#= dBFdz[n][i][p] where n = 1:NumGrdPts, 
-														 i is position of 1st derivative,and p=1:NumBF =#
-		d2BFdx2 = AAA{Float64}[[[ones(Float64,NumBF) 
-					for i in k:NumDerivArgs]
-					for k in 1:NumDerivArgs]
-					for n in 1:NumPts] 			#= d2BFdz2[n][i][k][p] where n =1:NumGrdPts,
-														i is position of 1st derivative, 
-														k = j - i + 1 where j in position of 2nd derivative, and p=1:NumBF =#
+
+		dBFdx = deepcopy(dBFdz)
+		d2BFdx2 = deepcopy(d2BFdz2)	
+
 		new(D, mu,  lb, ub, Binds, 
 			NumPts, NumBF, NumDeriv, NumDerivArgs, max_order,
 			x, z, T, dT, d2T, 

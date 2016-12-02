@@ -117,7 +117,7 @@ module SmolyakTest
 				for i in 1:NumObs
 					X[i] = collect(rpoint(lb,ub))
 				end
-				sbX = SmolyakBasis(X,mu,lb,ub;NumDeriv=0,NumDerivArgs=0)
+				sbX = SmolyakBasis(X,mu,lb,ub;NumDeriv=0)
 				makeBasis!(sbX)
 				spX = SmolyakPoly(sbX)
 				copy!(spX.Coef,sp.Coef) 		
@@ -148,7 +148,7 @@ module SmolyakTest
 				# make basis on random point
 				NumObs = 10
 				X = Vector{Float64}[ Float64[lb[d]+( ub[d]- lb[d])*rand() for d in 1:D] for i in 1:NumObs]
-				sbX = SmolyakBasis(X,mu,lb,ub;NumDeriv=0,NumDerivArgs=0)
+				sbX = SmolyakBasis(X,mu,lb,ub;NumDeriv=0)
 				makeBasis!(sbX)
 				spX = SmolyakPoly(sbX)
 				copy!(spX.Coef,sp.Coef) 		
@@ -180,7 +180,7 @@ module SmolyakTest
 				# make basis on random point
 				NumObs = 10
 				X = Vector{Float64}[ Float64[lb[d]+( ub[d]- lb[d])*rand() for d in 1:D] for i in 1:NumObs]
-				sbX = SmolyakBasis(X,mu,lb,ub;NumDeriv=0,NumDerivArgs=0)
+				sbX = SmolyakBasis(X,mu,lb,ub;NumDeriv=0)
 				makeBasis!(sbX)
 				spX = SmolyakPoly(sbX)
 				copy!(spX.Coef,sp.Coef) 		
@@ -211,7 +211,7 @@ module SmolyakTest
 				# make basis on random point
 				NumObs = 10
 				X = Vector{Float64}[ Float64[lb[d]+( ub[d]- lb[d])*rand() for d in 1:D] for i in 1:NumObs]
-				sbX = SmolyakBasis(X,mu,lb,ub;NumDeriv=0,NumDerivArgs=0)
+				sbX = SmolyakBasis(X,mu,lb,ub;NumDeriv=0)
 				makeBasis!(sbX)
 				spX = SmolyakPoly(sbX)
 				copy!(spX.Coef,sp.Coef) 		
