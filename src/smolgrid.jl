@@ -47,51 +47,85 @@ ub = 3.*ones(length(mu))
 sg = SmolyakGrid(mu,lb,ub)
 ```
 """
-type SmolyakGrid
+type SmolyakGrid{T}
 	D 			::	Int64				# Dimensions
-	mu 			::	ScalarOrVec{Int64}	# Index of mu
+	mu 			::	T					#Index of mu
 	NumGrdPts 	::	Int64				# Number of Grid Points
 	lb 			::	Vector{Float64}		# Lower Bounds of dimensions
 	ub 			::	Vector{Float64}		# Upper Bounds of dimensions
 	zGrid 		::	AA{Float64}			# Smolyak Grid on z = [-1,1]
 	xGrid 		::	AA{Float64}			# Smolyak Grid on original domain x in [lb,ub]
 	Binds    	::  AA{Int64}			# Input to construct Basis Funs for set of grid points -> Will depend on mu.
+end
 
-	function SmolyakGrid(mu::ScalarOrVec{Int64},lb::Vector{Float64}=-1*ones(Float64,length(mu)), ub::Vector{Float64}=ones(Float64,length(mu)),D::Int64=length(mu))
-		
-		# Setup
-		NumGrdPts, Ginds = SmolIdx(tuple(mu...))
-		z = Vector{Float64}[Array{Float64}(D) for r in 1:NumGrdPts]
-		x = Vector{Float64}[Array{Float64}(D) for r in 1:NumGrdPts]
-		Binds = Vector{Int64}[Array{Int64}(D) for r in 1:NumGrdPts]
+function SmolyakGrid(mu::Vector{Int64},lb::Vector{Float64}=-1*ones(Float64,length(mu)), ub::Vector{Float64}=ones(Float64,length(mu)),D::Int64=length(lb))
+	
+	# Setup
+	NumGrdPts, Ginds = SmolIdx(tuple(mu...))
+	z = Vector{Float64}[Array{Float64}(D) for r in 1:NumGrdPts]
+	x = Vector{Float64}[Array{Float64}(D) for r in 1:NumGrdPts]
+	Binds = Vector{Int64}[Array{Int64}(D) for r in 1:NumGrdPts]
 
-		# Make Grid and Indices
-		makeGrid!(z,Ginds,tuple(mu...))			# Make Grid on [-1,1]
-		z2x!(z,x,lb,ub) 						# Grid on X
-		makeBasisIdx!(Binds,Ginds,tuple(mu...)) # Basis Function Indices
+	# Make Grid and Indices
+	makeGrid!(z,Ginds,tuple(mu...))			# Make Grid on [-1,1]
+	z2x!(z,x,lb,ub) 						# Grid on X
+	makeBasisIdx!(Binds,Ginds,tuple(mu...)) # Basis Function Indices
 
-		new(D, mu, NumGrdPts, lb, ub, z, x, Binds)
-	end
+	return SmolyakGrid(D, mu, NumGrdPts, lb, ub, z, x, Binds)
+end
 
-	function SmolyakGrid(mu::ScalarOrVec{Int64},lb::Vector{Int64}, ub::Vector{Int64},D::Int64=length(mu))
-		
-		lb_float = convert(Vector{Float64},lb)
-		ub_float = convert(Vector{Float64},ub)
+function SmolyakGrid(mu::Int64,lb::Vector{Float64}=-1*ones(Float64,mu), ub::Vector{Float64}=ones(Float64,mu),D::Int64=length(lb))
+	
+	# Setup
+	NumGrdPts, Ginds = SmolIdx(tuple(mu...))
+	z = Vector{Float64}[Array{Float64}(D) for r in 1:NumGrdPts]
+	x = Vector{Float64}[Array{Float64}(D) for r in 1:NumGrdPts]
+	Binds = Vector{Int64}[Array{Int64}(D) for r in 1:NumGrdPts]
 
-		# Setup
-		NumGrdPts, Ginds = SmolIdx(tuple(mu...))
-		z = Vector{Float64}[Array{Float64}(D) for r in 1:NumGrdPts]
-		x = Vector{Float64}[Array{Float64}(D) for r in 1:NumGrdPts]
-		Binds = Vector{Int64}[Array{Int64}(D) for r in 1:NumGrdPts]
+	# Make Grid and Indices
+	makeGrid!(z,Ginds,tuple(mu...))			# Make Grid on [-1,1]
+	z2x!(z,x,lb,ub) 						# Grid on X
+	makeBasisIdx!(Binds,Ginds,tuple(mu...)) # Basis Function Indices
 
-		# Make Grid and Indices
-		makeGrid!(z,Ginds,tuple(mu...))			# Make Grid on [-1,1]
-		z2x!(z,x,lb_float,ub_float) 						# Grid on X
-		makeBasisIdx!(Binds,Ginds,tuple(mu...)) # Basis Function Indices
+	return SmolyakGrid(D, mu, NumGrdPts, lb, ub, z, x, Binds)
+end
 
-		new(D, mu, NumGrdPts, lb_float, ub_float, z, x, Binds)
-	end
+function SmolyakGrid(mu::Int64,lb::Vector{Int64}, ub::Vector{Int64},D::Int64=length(lb))
+	
+	lb_float = convert(Vector{Float64},lb)
+	ub_float = convert(Vector{Float64},ub)
 
+	# Setup
+	NumGrdPts, Ginds = SmolIdx(tuple(mu...))
+	z = Vector{Float64}[Array{Float64}(D) for r in 1:NumGrdPts]
+	x = Vector{Float64}[Array{Float64}(D) for r in 1:NumGrdPts]
+	Binds = Vector{Int64}[Array{Int64}(D) for r in 1:NumGrdPts]
+
+	# Make Grid and Indices
+	makeGrid!(z,Ginds,tuple(mu...))			# Make Grid on [-1,1]
+	z2x!(z,x,lb_float,ub_float) 						# Grid on X
+	makeBasisIdx!(Binds,Ginds,tuple(mu...)) # Basis Function Indices
+
+	return SmolyakGrid(D, mu, NumGrdPts, lb_float, ub_float, z, x, Binds)
+end
+
+function SmolyakGrid(mu::Vector{Int64},lb::Vector{Int64}, ub::Vector{Int64},D::Int64=length(lb))
+	
+	lb_float = convert(Vector{Float64},lb)
+	ub_float = convert(Vector{Float64},ub)
+
+	# Setup
+	NumGrdPts, Ginds = SmolIdx(tuple(mu...))
+	z = Vector{Float64}[Array{Float64}(D) for r in 1:NumGrdPts]
+	x = Vector{Float64}[Array{Float64}(D) for r in 1:NumGrdPts]
+	Binds = Vector{Int64}[Array{Int64}(D) for r in 1:NumGrdPts]
+
+	# Make Grid and Indices
+	makeGrid!(z,Ginds,tuple(mu...))			# Make Grid on [-1,1]
+	z2x!(z,x,lb_float,ub_float) 						# Grid on X
+	makeBasisIdx!(Binds,Ginds,tuple(mu...)) # Basis Function Indices
+
+	return SmolyakGrid(D, mu, NumGrdPts, lb_float, ub_float, z, x, Binds)
 end
 
 function show(io::IO, sg::SmolyakGrid)

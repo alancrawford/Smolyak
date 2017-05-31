@@ -72,22 +72,35 @@ end
 	end
 end
 
-type SmolyakHD
+type SmolyakHD{T}
 	D 			::	Int64				# Dimensions
-	mu 			::	ScalarOrVec{Int64}	# Index of mu
+	mu 			::	T					# Index of mu
 	NumGrdPts 	::	Int64				# Number of Grid Points
 	lb 			::	Vector{Float64}		# Lower Bounds of dimensions
 	ub 			::	Vector{Float64}		# Upper Bounds of dimensions
 	Ginds    	::  AA{Int64}			# Input to construct BasisIdx/Binds
 	Binds		::  AA{Int64}			# Binds
 
-	function SmolyakHD(mu::ScalarOrVec{Int64},lb::Vector{Float64}=-1*ones(Float64,length(mu)), ub::Vector{Float64}=ones(Float64,length(mu)),D::Int64=length(mu))
-		GridIdx = makeHDSmolIdx(mu)
-		NGP = makeNumGridPts(GridIdx,(mu...))
-		BasisIdx = Vector{Int64}[Array{Int64}(D) for r in 1:NGP]
-		makeBasisIdx!(BasisIdx,GridIdx,(mu...)) # Basis Function Indices
-
-		new(D,mu,NGP,lb,ub,GridIdx,BasisIdx)
-	end
 end
+
+function SmolyakHD(mu::Int64,lb::Vector{Float64}=-1*ones(Float64,mu), ub::Vector{Float64}=ones(Float64,mu),D::Int64=length(lb))
+	GridIdx = makeHDSmolIdx(mu)
+	NGP = makeNumGridPts(GridIdx,(mu...))
+	BasisIdx = Vector{Int64}[Array{Int64}(D) for r in 1:NGP]
+	makeBasisIdx!(BasisIdx,GridIdx,(mu...)) # Basis Function Indices
+
+	return SmolyakHD(D,mu,NGP,lb,ub,GridIdx,BasisIdx)
+end
+
+function SmolyakHD(mu::Vector{Int64},lb::Vector{Float64}=-1*ones(Float64,length(mu)), ub::Vector{Float64}=ones(Float64,length(mu)),D::Int64=length(lb))
+	GridIdx = makeHDSmolIdx(mu)
+	NGP = makeNumGridPts(GridIdx,(mu...))
+	BasisIdx = Vector{Int64}[Array{Int64}(D) for r in 1:NGP]
+	makeBasisIdx!(BasisIdx,GridIdx,(mu...)) # Basis Function Indices
+
+	return SmolyakHD(D,mu,NGP,lb,ub,GridIdx,BasisIdx)
+end
+
+
+
 
