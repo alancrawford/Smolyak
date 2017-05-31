@@ -245,7 +245,7 @@ end
 
 # In place coordinate transform for vector: z→x
 function z2x!(z::Vector{Float64},x::Vector{Float64},lb::Vector{Float64},ub::Vector{Float64})
-	for d in 1:length(z)
+	for d in eachindex(z)
 		x[d] = 0.5*( ub[d] + lb[d] + z[d]*(ub[d] - lb[d]) )
 	end
 end
@@ -266,7 +266,7 @@ end
 
 # In place coordinate transform for vector: x→z
 function x2z!(x::Vector{Float64},z::Vector{Float64},lb::Vector{Float64},ub::Vector{Float64})
-	for d in 1:length(x)
+	for d in eachindex(z)
 		z[d] = (2x[d] - ub[d] - lb[d])/(ub[d] - lb[d]) 
 	end
 end

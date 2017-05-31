@@ -93,7 +93,7 @@ end
 
 # In place fn value update
 function makeValue!(sp::SmolyakPoly,sb::SmolyakBasis;Coef::Vector{Float64}=sp.Coef)
-	for n in 1:sb.NumPts
+	@inbounds for n in 1:sb.NumPts
 		sp.Value[n] = dot(sb.BF[n],Coef)
 	end
 	return sp.Value
@@ -101,7 +101,7 @@ end
 
 # In place 1st Derivative Update
 function makeGrad!(sp::SmolyakPoly,sb::SmolyakBasis;Coef::Vector{Float64}=sp.Coef,N::Int64=sp.NumDerivArgs)
-	for i in 1:N, n in 1:sb.NumPts,
+	@inbounds for i in 1:N, n in 1:sb.NumPts,
 		sp.Grad[n][i] = dot(sb.dBFdx[n][i],Coef)
 	end
 	return sp.Grad
@@ -109,7 +109,7 @@ end
 
 # In place 2nd Derivative Update
 function makeHess!(sp::SmolyakPoly,sb::SmolyakBasis;Coef::Vector{Float64}=sp.Coef,N::Int64=sp.NumDerivArgs)
-	for i in 1:N, j in i:N, n in 1:sb.NumPts,
+	@inbounds for i in 1:N, j in i:N, n in 1:sb.NumPts,
 		k = j-i+1
 		sp.Hess[n][i,j] = dot(sb.d2BFdx2[n][i][k],Coef)
 		!=(i,j) ? sp.Hess[n][j,i] = sp.Hess[n][i,j] : nothing
@@ -121,7 +121,7 @@ end
 function make_pinvBFt!(sp::SmolyakPoly,sb::SmolyakBasis)
 	if >=(sp.NumPts,sp.NumCoef)
 		BF = Array{Float64}(sp.NumPts,sp.NumCoef)
-		for n in eachindex(sp.Value), p in eachindex(sp.Coef)
+		@inbounds for n in eachindex(sp.Value), p in eachindex(sp.Coef)
 			BF[n,p] = sb.BF[n][p]
 		end
 		return sp.pinvBFt = pinv(BF)' # Transpose because matrix multiplication goes down cols
@@ -132,7 +132,7 @@ end
 
 # Calculate New Coefficient using Least Squares with precalculate Moore-Penrose Pseudo-Inverse - may be more efficient than backslash if pinvBF not changing
 function makeCoef!(sp::SmolyakPoly;f::Vector{Float64}=sp.Value)
-	for k in 1:sp.NumCoef
+	@inbounds for k in 1:sp.NumCoef
 		s = 0.0
 		for n in 1:sp.NumPts
 		 	s += sp.pinvBFt[n,k]*f[n]
