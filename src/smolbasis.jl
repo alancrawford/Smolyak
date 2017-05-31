@@ -313,9 +313,9 @@ type SmolyakBasis
 		end
 
 		# Preallocate memory for basis functions
-		T = zeros(sg.D, max_order) 	
-		dT = zeros(sg.D, max_order)
-		d2T = zeros(sg.D, max_order)
+		T = zeros(shd.D, max_order) 	
+		dT = zeros(shd.D, max_order)
+		d2T = zeros(shd.D, max_order)
 
 		# For Basis Functions and transformation back: Allocate memory for BF, pinvBF, and derivatives -> then makeBasis!(sb)
 		NumDerivArgs = max(1,NumDerivArgs)
