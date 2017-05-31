@@ -238,7 +238,7 @@ end
 
 # In place coordinate transform for vector: z→x
 function z2x!(sg::SmolyakGrid)
-	for n in eachindex(sg.zGrid), d in 1:sg.D
+	for n in eachindex(sg.zGrid), d in eachindex(sg.mu)
 		sg.xGrid[n][d] = 0.5*( sg.ub[d] + sg.lb[d] + sg.zGrid[n][d]*(sg.ub[d] - sg.lb[d]) )
 	end
 end
@@ -259,7 +259,7 @@ end
 
 # In place coordinate transform for vector: x→z
 function x2z!(sg::SmolyakGrid)
-	for n in eachindex(sg.xGrid), d in 1:sg.D
+	for n in eachindex(sg.xGrid), d in eachindex(sg.mu)
 		sg.zGrid[n][d] = (2sg.xGrid[n][d] - sg.ub[d] - sg.lb[d])/(sg.ub[d] - sg.lb[d])
 	end
 end

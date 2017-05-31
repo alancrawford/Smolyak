@@ -145,8 +145,8 @@ type SmolyakBasis
 	NumDeriv	:: Int64					# Number of derivatives: {0,1,2}
 	NumDerivArgs:: Int64					# 1st NumDerivArgs used (i.e. 1:NumDerivArgs)
 	max_order	:: Int64 					# Maximum order of polynomial for T
-	x 			:: Array{Real}				# Vector of coordinates at which SB is evaluated 
-	z 			:: Array{Real} 				# Transformed vector of coordinates into [-1,1]
+	x 			:: Array					# Vector of coordinates at which SB is evaluated 
+	z 			:: Array 					# Transformed vector of coordinates into [-1,1]
 	T 			:: Matrix{Float64} 			# 1-dim Chebyshev basis fn: level
 	dT 			:: Matrix{Float64} 			# 1-dim Chebyshev basis fn: 1st derivative
 	d2T 		:: Matrix{Float64} 			# 1-dim Chebyshev basis fn: 2nd derivative
