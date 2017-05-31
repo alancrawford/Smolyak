@@ -93,7 +93,7 @@ end
 
 # In place fn value update
 function makeValue!(sp::SmolyakPoly,sb::SmolyakBasis;Coef::Vector{Float64}=sp.Coef)
-	sp.Value[n] = 0.
+	sp.Value[n] = zeros(sd.NumPts)
 	for n in eachindex(sb.x), z in eachindex(Coef)
 		sp.Value[n] += sb.BF[n][z]*Coef[z]
 	end
