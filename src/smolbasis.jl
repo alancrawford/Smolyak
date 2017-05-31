@@ -225,10 +225,10 @@ type SmolyakBasis
 	function SmolyakBasis(x::Array,sg::SmolyakGrid;NumDeriv::Int64=2,NumDerivArgs::Int64=sg.D)
 		
 		if isa(x,Vector{Float64})  
-			z = Array{Float64}(sg.D) 
+			z = zeros(sg.D) 
 			NumPts = 1
 		else
-			z = Vector{Float64}[Array{Float64}(sg.D) for r in 1:length(x)]
+			z = Vector{Float64}[zeros(sg.D) for r in 1:length(x)]
 			NumPts = length(x)  
 		end
 		x2z!(x,z,sg.lb,sg.ub) 						#= x should be D x NumPts =#
@@ -247,7 +247,7 @@ type SmolyakBasis
 
 		# For Basis Functions and transformation back: Allocate memory for BF, pinvBF, and derivatives -> then makeBasis!(sb)
 		NumDerivArgs = max(1,NumDerivArgs)
-		BF = Vector{Float64}[ones(Float64,NumBF) 
+		BF = Vector{Float64}[ones(NumBF) 
 						for n in 1:NumPts]			# BF[n][p] where n =1:NumGrdPts, p=1:NumBF
 		
 		if NumDeriv==0
@@ -256,7 +256,7 @@ type SmolyakBasis
 			d2BFdz2 = AAA{Float64}[]
 			d2zdx2 = Float64[]
 		elseif NumDeriv==1
-			dBFdz = AA{Float64}[[ones(Float64,NumBF) 
+			dBFdz = AA{Float64}[[ones(NumBF) 
 						for i in 1:NumDerivArgs] 
 						for n in 1:NumPts]			#= dBFdz[n][i][p] where n = 1:NumGrdPts, 
 															 i is position of 1st derivative,and p=1:NumBF =#
@@ -268,7 +268,7 @@ type SmolyakBasis
 			d2zdx2 = Float64[]
 		else
 			NumDerivArgs>2 ? println("****** MAX OF 2 DERIVATIVES ******") : nothing
-			dBFdz = AA{Float64}[[ones(Float64,NumBF) 
+			dBFdz = AA{Float64}[[ones(NumBF) 
 						for i in 1:NumDerivArgs] 
 						for n in 1:NumPts]			#= dBFdz[n][i][p] where n = 1:NumGrdPts, 
 															 i is position of 1st derivative,and p=1:NumBF =#
@@ -276,7 +276,7 @@ type SmolyakBasis
 			for i in 1:sg.D
 				push!(dzdx,2/(sg.ub[i] - sg.lb[i]))
 			end
-			d2BFdz2 = AAA{Float64}[[[ones(Float64,NumBF) 
+			d2BFdz2 = AAA{Float64}[[[ones(NumBF) 
 						for i in k:NumDerivArgs]
 						for k in 1:NumDerivArgs]
 						for n in 1:NumPts] 			#= d2BFdz2[n][i][k][p] where n =1:NumGrdPts,
@@ -297,10 +297,10 @@ type SmolyakBasis
 	function SmolyakBasis(x::Array,shd::SmolyakHD;NumDeriv::Int64=2,NumDerivArgs::Int64=shd.D)
 		
 		if isa(x,Vector{Float64})  
-			z = Array{Float64}(shd.D) 
+			z = zeros(shd.D) 
 			NumPts = 1
 		else
-			z = Vector{Float64}[Array{Float64}(shd.D) for r in 1:length(x)]
+			z = Vector{Float64}[zeros(shd.D) for r in 1:length(x)]
 			NumPts = length(x)  
 		end
 		x2z!(x,z,shd.lb,shd.ub) 						#= x should be D x NumPts =#
@@ -319,7 +319,7 @@ type SmolyakBasis
 
 		# For Basis Functions and transformation back: Allocate memory for BF, pinvBF, and derivatives -> then makeBasis!(sb)
 		NumDerivArgs = max(1,NumDerivArgs)
-		BF = Vector{Float64}[ones(Float64,NumBF) 
+		BF = Vector{Float64}[ones(NumBF) 
 						for n in 1:NumPts]			# BF[n][p] where n =1:NumGrdPts, p=1:NumBF
 		
 		if NumDeriv==0
@@ -328,7 +328,7 @@ type SmolyakBasis
 			d2BFdz2 = AAA{Float64}[]
 			d2zdx2 = Float64[]
 		elseif NumDeriv==1
-			dBFdz = AA{Float64}[[ones(Float64,NumBF) 
+			dBFdz = AA{Float64}[[ones(NumBF) 
 						for i in 1:NumDerivArgs] 
 						for n in 1:NumPts]			#= dBFdz[n][i][p] where n = 1:NumGrdPts, 
 															 i is position of 1st derivative,and p=1:NumBF =#
@@ -340,7 +340,7 @@ type SmolyakBasis
 			d2zdx2 = Float64[]
 		else
 			NumDerivArgs>2 ? println("****** MAX OF 2 DERIVATIVES ******") : nothing
-			dBFdz = AA{Float64}[[ones(Float64,NumBF) 
+			dBFdz = AA{Float64}[[ones(NumBF) 
 						for i in 1:NumDerivArgs] 
 						for n in 1:NumPts]			#= dBFdz[n][i][p] where n = 1:NumGrdPts, 
 															 i is position of 1st derivative,and p=1:NumBF =#
@@ -348,7 +348,7 @@ type SmolyakBasis
 			for i in 1:shd.D
 				push!(dzdx,2/(shd.ub[i] - shd.lb[i]))
 			end
-			d2BFdz2 = AAA{Float64}[[[ones(Float64,NumBF) 
+			d2BFdz2 = AAA{Float64}[[[ones(NumBF) 
 						for i in k:NumDerivArgs]
 						for k in 1:NumDerivArgs]
 						for n in 1:NumPts] 			#= d2BFdz2[n][i][k][p] where n =1:NumGrdPts,
@@ -372,10 +372,10 @@ type SmolyakBasis
 							NumDeriv::Int64=2,NumDerivArgs::Int64=length(mu),D::Int64=length(mu))
 		
 		NumGrdPts, Ginds = Smolyak.SmolIdx(tuple(mu...))
-		Binds = Vector{Int64}[Array{Int64}(D) for r in 1:NumGrdPts]
+		Binds = Vector{Int64}[zeros(Int64,D) for r in 1:NumGrdPts]
 		Smolyak.makeBasisIdx!(Binds,Ginds,tuple(mu...)) # Basis Function Indices
-		z = isa(x,Vector{Float64}) ? Vector{Float64}(D) :
-			Vector{Float64}[Array{Float64}(D) for r in 1:length(x)]
+		z = isa(x,Vector{Float64}) ? zeros(D) :
+			Vector{Float64}[zeros(D) for r in 1:length(x)]
 		x2z!(x,z,lb,ub) 						#= x should be D x NumPts =#
 		NumPts = isa(x,Vector{Float64}) ? 1 : length(x) 
 		
@@ -395,7 +395,7 @@ type SmolyakBasis
 
 		# For Basis Functions and transformation back: Allocate memory for BF, pinvBF, and derivatives -> then makeBasis!(sb)
 		NumDerivArgs = max(1,NumDerivArgs)
-		BF = Vector{Float64}[ones(Float64,NumBF) 
+		BF = Vector{Float64}[ones(NumBF) 
 						for n in 1:NumPts]			# BF[n][p] where n =1:NumGrdPts, p=1:NumBF
 		
 		if NumDeriv==0
@@ -404,7 +404,7 @@ type SmolyakBasis
 			d2BFdz2 = AAA{Float64}[]
 			d2zdx2 = Float64[]
 		elseif NumDeriv==1
-			dBFdz = AA{Float64}[[ones(Float64,NumBF) 
+			dBFdz = AA{Float64}[[ones(NumBF) 
 						for i in 1:NumDerivArgs] 
 						for n in 1:NumPts]			#= dBFdz[n][i][p] where n = 1:NumGrdPts, 
 															 i is position of 1st derivative,and p=1:NumBF =#
@@ -416,7 +416,7 @@ type SmolyakBasis
 			d2zdx2 = Float64[]
 		else
 			NumDerivArgs>2 ? println("****** MAX OF 2 DERIVATIVES ******") : nothing
-			dBFdz = AA{Float64}[[ones(Float64,NumBF) 
+			dBFdz = AA{Float64}[[ones(NumBF) 
 						for i in 1:NumDerivArgs] 
 						for n in 1:NumPts]			#= dBFdz[n][i][p] where n = 1:NumGrdPts, 
 															 i is position of 1st derivative,and p=1:NumBF =#
@@ -424,7 +424,7 @@ type SmolyakBasis
 			for i in 1:D
 				push!(dzdx,2/(ub[i] - lb[i]))
 			end
-			d2BFdz2 = AAA{Float64}[[[ones(Float64,NumBF) 
+			d2BFdz2 = AAA{Float64}[[[ones(NumBF) 
 						for i in k:NumDerivArgs]
 						for k in 1:NumDerivArgs]
 						for n in 1:NumPts] 			#= d2BFdz2[n][i][k][p] where n =1:NumGrdPts,
