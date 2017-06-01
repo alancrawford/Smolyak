@@ -500,9 +500,9 @@ function SmolyakBasis(x::Vector{Float64}, mu::ScalarOrVec{Int64},
 						lb::Vector{Float64}=-1*ones(Float64,length(mu)), ub::Vector{Float64}=ones(Float64,length(mu));
 						NumDeriv::Int64=2,NumDerivArgs::Int64=length(mu),D::Int64=length(mu))
 	
-	NumGrdPts, Ginds = SmolyakFast.SmolIdx(tuple(mu...))
+	NumGrdPts, Ginds = Smolyak.SmolIdx(tuple(mu...))
 	Binds = Vector{Int64}[zeros(Int64,D) for r in 1:NumGrdPts]
-	SmolyakFast.makeBasisIdx!(Binds,Ginds,tuple(mu...)) # Basis Function Indices
+	Smolyak.makeBasisIdx!(Binds,Ginds,tuple(mu...)) # Basis Function Indices
 	z = zeros(D) 
 	x2z!(x,z,lb,ub) 						#= x should be D x NumPts =#
 	NumPts = 1
@@ -575,9 +575,9 @@ function SmolyakBasis(x::AA{Float64}, mu::ScalarOrVec{Int64},
 						lb::Vector{Float64}=-1*ones(Float64,length(mu)), ub::Vector{Float64}=ones(Float64,length(mu));
 						NumDeriv::Int64=2,NumDerivArgs::Int64=length(mu),D::Int64=length(mu))
 	
-	NumGrdPts, Ginds = SmolyakFast.SmolIdx(tuple(mu...))
+	NumGrdPts, Ginds = Smolyak.SmolIdx(tuple(mu...))
 	Binds = Vector{Int64}[zeros(Int64,D) for r in 1:NumGrdPts]
-	SmolyakFast.makeBasisIdx!(Binds,Ginds,tuple(mu...)) # Basis Function Indices
+	Smolyak.makeBasisIdx!(Binds,Ginds,tuple(mu...)) # Basis Function Indices
 	z = Vector{Float64}[zeros(D) for r in eachindex(x)]
 	x2z!(x,z,lb,ub) 						#= x should be D x NumPts =#
 	NumPts = length(x) 
