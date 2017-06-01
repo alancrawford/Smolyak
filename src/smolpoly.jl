@@ -108,7 +108,7 @@ end
 
 # In place fn value update
 function makeValue!(sp::SmolyakPoly{Vector{Float64}},sb::SmolyakBasis;Coef::Vector{Float64}=sp.Coef)
-	for n in eachindex(sp.Value)
+	@inbounds for n in 1:sb.NumPts
 		sp.Value[n] = dot(sb.BF[n],Coef)
 	end
 	return sp.Value
@@ -116,7 +116,7 @@ end
 
 # In place 1st Derivative Update
 function makeGrad!(sp::SmolyakPoly,sb::SmolyakBasis;Coef::Vector{Float64}=sp.Coef,N::Int64=sp.NumDerivArgs)
-	@inbounds for i in 1:N, n in eachindex(sp.Value)
+	@inbounds for i in 1:N, n in eachindex(sb.BF)
 		sp.Grad[n][i] = dot(sb.dBFdx[n][i],Coef)
 	end
 	return sp.Grad
