@@ -3,7 +3,7 @@
 
 Module contains code to define Smolyak Grids and construct corresponding Interpolating Smolyak Polynomials. Both Anisotrophic and Isotrophic Grids/Polynomials are supported and are constructed efficiently following the methodology outlined in Judd, Maliar, Maliar, Valero (2014). 
 
-The code is designed for Julia version: 0.4.
+The code is designed for Julia version: 0.5.
 
 The module has 3 main components with corresponding types:
 
@@ -30,9 +30,9 @@ sg = SmolyakGrid(mu,lb,ub)
 sb = SmolyakBasis(sg)
 makeBasis!(sb)
 sp = SmolyakPoly(sb)
-getValue!(sp,sb)
-getGrad!(sp,sb)
-getHess!(sp,sb)
+makeValue!(sp,sb)
+makeGrad!(sp,sb)
+makeHess!(sp,sb)
 ```
 
 Further examples can be found in help files in REPL and at [Interpolation Example](./test/Interpolation_Example.jl).

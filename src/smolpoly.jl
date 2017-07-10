@@ -83,7 +83,7 @@ end
 
 function SmolyakPoly(sb::SmolyakBasis{Float64}; Coef::Vector=rand(sb.NumBF), NumDeriv::Int64=sb.NumDeriv, NumDerivArgs::Int64=sb.NumDerivArgs, NumPts::Int64=sb.NumPts)		
 	
-	Value = zeros(1)
+	Value = 0.
 	Grad = Vector{Float64}[zeros(NumDerivArgs) for n in 1:NumPts]
 	Hess = Matrix{Float64}[zeros(NumDerivArgs,NumDerivArgs) for n in 1:NumPts]
 	pinvBF = Array{Float64}(sb.NumBF,NumPts)
@@ -102,13 +102,21 @@ function SmolyakPoly(sb::SmolyakBasis{Vector{Float64}}; Coef::Vector=rand(sb.Num
 end
 
 # In place fn value update
-function makeValue!(sp::SmolyakPoly{Float64},sb::SmolyakBasis;Coef::Vector{Float64}=sp.Coef)
+function makeValue!(sp::SmolyakPoly{Float64},sb::SmolyakBasis{Float64};Coef::Vector{Float64}=sp.Coef)
 	return sp.Value = dot(sb.BF[1],Coef)
 end
 
 # In place fn value update
-function makeValue!(sp::SmolyakPoly{Vector{Float64}},sb::SmolyakBasis;Coef::Vector{Float64}=sp.Coef)
-	@inbounds for n in 1:sb.NumPts
+function makeValue!(sp::SmolyakPoly{Vector{Float64}},sb::SmolyakBasis{Float64};Coef::Vector{Float64}=sp.Coef)
+	for n in eachindex(sp.Value)
+		sp.Value[n] = dot(sb.BF[n],Coef)
+	end
+	return sp.Value
+end
+
+# In place fn value update
+function makeValue!(sp::SmolyakPoly{Vector{Float64}},sb::SmolyakBasis{Vector{Float64}};Coef::Vector{Float64}=sp.Coef)
+	for n in eachindex(sp.Value)
 		sp.Value[n] = dot(sb.BF[n],Coef)
 	end
 	return sp.Value

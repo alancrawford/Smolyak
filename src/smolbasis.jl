@@ -7,7 +7,7 @@
 
 Smolyak Basis type. Both Anisotrophic and Isotrophic Grids are supported 
 and they are constructed efficiently following the methodology outlined in
-Judd, Maliar, Maliar, Valero (2014). The code is designed for Julia v0.4.
+Judd, Maliar, Maliar, Valero (2014). The code is designed for Julia v0.5.
 
 #### Fields
 
