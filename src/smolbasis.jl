@@ -846,11 +846,10 @@ end
 
 # Makes Basis Functions with sb.NumDeriv derivatives of the first n arguments of state vector
 function makeBasis!(sb::SmolyakBasis{Float64},N::Int64=sb.NumDerivArgs)
-	sb.NumPts = 1
 	initBF!(sb,N) # Need to start with BF and derivatives as 1 because will take product over loops
 	if is(sb.NumDeriv,2)
 		Tn!(sb)
-		for d in eachindex(sb.x), p in eachindex(sb.BF)
+		for d in eachindex(sb.x), p in eachindex(sb.BF[1])
 			BF!(sb, p, d, 1)
 			dBFdz!(sb, p, d, 1, N)
 			d2BFdz2!(sb, p, d, 1, N) 			# Hess
@@ -859,14 +858,14 @@ function makeBasis!(sb::SmolyakBasis{Float64},N::Int64=sb.NumDerivArgs)
 		d2BFdx2!(sb, N)
 	elseif is(sb.NumDeriv,1)
 		Tn!(sb)
-		for d in eachindex(sb.x), p in eachindex(sb.BF)
+		for d in eachindex(sb.x), p in eachindex(sb.BF[1])
 			BF!(sb, p, d, 1)
 			dBFdz!(sb, p, d, 1, N) 				# Jac
 		end
 		dBFdx!(sb, N)
 	elseif is(sb.NumDeriv,0)
 		Tn!(sb)
-		for d in eachindex(sb.x), p in eachindex(sb.BF)
+		for d in eachindex(sb.x), p in eachindex(sb.BF[1])
 			BF!(sb, p, d, 1) 					# Now need to multiply over dimension to create a NBF-vector of Basis Function at grid point i. END OF LOOP → NumBF x NumPts for all grid points. 
 		end 									
 	else
