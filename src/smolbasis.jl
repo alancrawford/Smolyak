@@ -134,7 +134,7 @@ sb = SmolyakBasis(x,mu,lb,ub)
 makeBasis!(sb)
 ```
 """
-type SmolyakBasis{T}
+mutable struct SmolyakBasis{T}
 	D 			:: Int64					# Dimensions
 	mu 			:: ScalarOrVec{Int64}		# Index of mu
 	lb 			:: Vector{Float64}			# Lower Bounds of dimensions

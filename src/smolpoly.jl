@@ -68,7 +68,7 @@ makeHess!(sp,sb)
 For more detailed example see [Interpolation_Example.jl](./test/Interpolation_Example.jl).
 	
 """
-type SmolyakPoly{T}
+mutable struct SmolyakPoly{T}
 	NumPts 		:: Int64 					# Number of points
 	NumCoef 	:: Int64					# Number of elements in Coefficient Vector
 	Coef 	 	:: Vector{Float64} 			# Coefficients of Smplyak Interpolant

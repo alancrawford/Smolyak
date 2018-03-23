@@ -47,7 +47,7 @@ ub = 3.*ones(length(mu))
 sg = SmolyakGrid(mu,lb,ub)
 ```
 """
-type SmolyakGrid{T}
+mutable struct SmolyakGrid{T}
 	D 			::	Int64				# Dimensions
 	mu 			::	T					#Index of mu
 	NumGrdPts 	::	Int64				# Number of Grid Points
