@@ -144,19 +144,19 @@ end
 #= Sub Funs called when creating SmolyakGrid =#
 #= ***************************************** =#
 
-# This fn returns theta = cos(x), where x are chebyshev nodes
+# This fn returns theta = cos.(x), where x are chebyshev nodes
 function chebtheta(n::Int64)	
-	is(n,1) ? 0.5pi : nothing 
+	===(n,1) ? 0.5pi : nothing 
 	return [0:n-1;]pi./(n-1)
 end	
 
 function chebnodes(n::Int64)	
-	return round(cos(chebtheta(n)),14)
+	return round.(cos.(chebtheta(n)),14)
 end
 
 # This is the map from index to number of grid points in each dimension
 function m_i(i::Int64)
-	is(i,1) ? 1 : 2.^(i-1)+1
+	===(i,1) ? 1 : 2.^(i-1)+1
 end
 
 # This is number of new points added by nested rule as function of index i ( = l+1 in Burkhardt)
@@ -170,9 +170,9 @@ end
 
 # Disjoint Sets of Grid Points whose product are combined 
 function grid_A_i(i::Int64)
-	if is(i,1)
+	if ===(i,1)
 		return 0.0
-	elseif is(i,2)
+	elseif ===(i,2)
 		return chebnodes(m_i(i))[1:2:m_i(i)]
 	else
 		return chebnodes(m_i(i))[2:2:m_i(i)] 

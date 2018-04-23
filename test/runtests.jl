@@ -24,7 +24,7 @@ module SmolyakTest
 					sp.Value[i] = truefun(sg.xGrid[i]) 	# Use truefun to input correct values of function into
 				end
 
-				@fact maxabs(makeValue!(sp,sb) - sp.Value) < 1e-16 --> true
+				@fact maximum(abs, makeValue!(sp,sb) - sp.Value) < 1e-16 --> true
 			end
 
 			context("2D") do
@@ -42,7 +42,7 @@ module SmolyakTest
 					sp.Value[i] = truefun(sg.xGrid[i]) 	# Use truefun to input correct values of function into
 				end
 
-				@fact maxabs(makeValue!(sp,sb) - sp.Value) < 1e-16 --> true
+				@fact maximum(abs, makeValue!(sp,sb) - sp.Value) < 1e-16 --> true
 
 			end
 
@@ -61,7 +61,7 @@ module SmolyakTest
 					sp.Value[i] = truefun(sg.xGrid[i]) 	# Use truefun to input correct values of function into
 				end
 
-				@fact maxabs(makeValue!(sp,sb) - sp.Value) < 1e-16 --> true
+				@fact maximum(abs, makeValue!(sp,sb) - sp.Value) < 1e-16 --> true
 
 			end
 
@@ -80,7 +80,7 @@ module SmolyakTest
 					sp.Value[i] = truefun(sg.xGrid[i]) 	# Use truefun to input correct values of function into
 				end
 
-				@fact maxabs(makeValue!(sp,sb) - sp.Value) < 1e-16 --> true
+				@fact maximum(abs, makeValue!(sp,sb) - sp.Value) < 1e-16 --> true
 
 			end
 		end

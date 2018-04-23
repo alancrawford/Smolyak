@@ -665,15 +665,15 @@ function Tn!(sb::SmolyakBasis)
 		if ==(n,1)
 			sb.T[d,n] = 1.0
 			>=(sb.NumDeriv,1) ? sb.dT[d,n] = 0.0 : nothing
-			is(sb.NumDeriv,2) ? sb.d2T[d,n] = 0.0 : nothing				
+			===(sb.NumDeriv,2) ? sb.d2T[d,n] = 0.0 : nothing				
 		elseif ==(n,2)
 			sb.T[d,n] = sb.z[d]
 			>=(sb.NumDeriv,1) ? sb.dT[d,n] = 1.0 : nothing
-			is(sb.NumDeriv,2) ? sb.d2T[d,n] = 0.0 : nothing				
+			===(sb.NumDeriv,2) ? sb.d2T[d,n] = 0.0 : nothing				
 		else
 			sb.T[d,n] = 2.*sb.z[d]*sb.T[d,n-1] - sb.T[d,n-2]
 			>=(sb.NumDeriv,1) ? sb.dT[d,n] = 2.*sb.T[d,n-1] + 2.*sb.z[d]*sb.dT[d,n-1] - sb.dT[d,n-2] : nothing
-			is(sb.NumDeriv,2) ? sb.d2T[d,n] = 4.*sb.dT[d,n-1] + 2.*sb.z[d]*sb.d2T[d,n-1] - sb.d2T[d,n-2] : nothing
+			===(sb.NumDeriv,2) ? sb.d2T[d,n] = 4.*sb.dT[d,n-1] + 2.*sb.z[d]*sb.d2T[d,n-1] - sb.d2T[d,n-2] : nothing
 		end
 	end
 end
@@ -684,15 +684,15 @@ function Tn!(sb::SmolyakBasis,i::Int64)
 		if ==(n,1)
 			sb.T[d,n] = 1.0
 			>=(sb.NumDeriv,1) ? sb.dT[d,n] = 0.0 : nothing
-			is(sb.NumDeriv,2) ? sb.d2T[d,n] = 0.0 : nothing				
+			===(sb.NumDeriv,2) ? sb.d2T[d,n] = 0.0 : nothing				
 		elseif ==(n,2)
 			sb.T[d,n] = sb.z[i][d]
 			>=(sb.NumDeriv,1) ? sb.dT[d,n] = 1.0 : nothing
-			is(sb.NumDeriv,2) ? sb.d2T[d,n] = 0.0 : nothing				
+			===(sb.NumDeriv,2) ? sb.d2T[d,n] = 0.0 : nothing				
 		else
 			sb.T[d,n] = 2.*sb.z[i][d]*sb.T[d,n-1] - sb.T[d,n-2]
 			>=(sb.NumDeriv,1) ? sb.dT[d,n] = 2.*sb.T[d,n-1] + 2.*sb.z[i][d]*sb.dT[d,n-1] - sb.dT[d,n-2] : nothing
-			is(sb.NumDeriv,2) ? sb.d2T[d,n] = 4.*sb.dT[d,n-1] + 2.*sb.z[i][d]*sb.d2T[d,n-1] - sb.d2T[d,n-2] : nothing
+			===(sb.NumDeriv,2) ? sb.d2T[d,n] = 4.*sb.dT[d,n-1] + 2.*sb.z[i][d]*sb.d2T[d,n-1] - sb.d2T[d,n-2] : nothing
 		end
 	end
 end
@@ -762,7 +762,7 @@ end
 
 # Initialise Basis Functions with 1's
 function initBF!(sb::SmolyakBasis{Vector{Float64}},N::Int64=sb.NumDerivArgs)
-	if is(sb.NumDeriv,2)
+	if ===(sb.NumDeriv,2)
 		for n in eachindex(sb.x)
 			fill!(sb.BF[n],1.)
 			@inbounds for i in 1:N 
@@ -773,7 +773,7 @@ function initBF!(sb::SmolyakBasis{Vector{Float64}},N::Int64=sb.NumDerivArgs)
 				end
 			end
 		end
-	elseif is(sb.NumDeriv,1)
+	elseif ===(sb.NumDeriv,1)
 		for n in eachindex(sb.x)
 			fill!(sb.BF[n],1.)
 			@inbounds for i in 1:N 
@@ -789,7 +789,7 @@ end
 
 # Initialise Basis Functions with 1's
 function initBF!(sb::SmolyakBasis{Float64},N::Int64=sb.NumDerivArgs)
-	if is(sb.NumDeriv,2)
+	if ===(sb.NumDeriv,2)
 		fill!(sb.BF[1],1.)
 		@inbounds for i in 1:N 
 			fill!(sb.dBFdz[1][i],1.)
@@ -798,7 +798,7 @@ function initBF!(sb::SmolyakBasis{Float64},N::Int64=sb.NumDerivArgs)
 				fill!(sb.d2BFdz2[1][i][k],1.)
 			end
 		end
-	elseif is(sb.NumDeriv,1)
+	elseif ===(sb.NumDeriv,1)
 		fill!(sb.BF[1],1.)
 		@inbounds for i in 1:N 
 			fill!(sb.dBFdz[1][i],1.)
@@ -812,7 +812,7 @@ end
 function makeBasis!(sb::SmolyakBasis{Vector{Float64}},N::Int64=sb.NumDerivArgs)
 	sb.NumPts = length(sb.x)
 	initBF!(sb,N) # Need to start with BF and derivatives as 1 because will take product over loops
-	if is(sb.NumDeriv,2)
+	if ===(sb.NumDeriv,2)
 		for i in eachindex(sb.x)
 			Tn!(sb,i)
 			for d in eachindex(sb.x[i]), p in eachindex(sb.BF[i])
@@ -823,7 +823,7 @@ function makeBasis!(sb::SmolyakBasis{Vector{Float64}},N::Int64=sb.NumDerivArgs)
 		end
 		dBFdx!(sb, N)
 		d2BFdx2!(sb, N)
-	elseif is(sb.NumDeriv,1)
+	elseif ===(sb.NumDeriv,1)
 		for i in eachindex(sb.x)
 			Tn!(sb,i)
 			for d in eachindex(sb.x[i]), p in eachindex(sb.BF[i])
@@ -832,7 +832,7 @@ function makeBasis!(sb::SmolyakBasis{Vector{Float64}},N::Int64=sb.NumDerivArgs)
 			end
 		end
 		dBFdx!(sb, N)
-	elseif is(sb.NumDeriv,0)
+	elseif ===(sb.NumDeriv,0)
 		for i in eachindex(sb.x)
 			Tn!(sb,i)
 			for d in eachindex(sb.x[i]), p in eachindex(sb.BF[i])
@@ -847,7 +847,7 @@ end
 # Makes Basis Functions with sb.NumDeriv derivatives of the first n arguments of state vector
 function makeBasis!(sb::SmolyakBasis{Float64},N::Int64=sb.NumDerivArgs)
 	initBF!(sb,N) # Need to start with BF and derivatives as 1 because will take product over loops
-	if is(sb.NumDeriv,2)
+	if ===(sb.NumDeriv,2)
 		Tn!(sb)
 		for d in eachindex(sb.x), p in eachindex(sb.BF[1])
 			BF!(sb, p, d, 1)
@@ -856,14 +856,14 @@ function makeBasis!(sb::SmolyakBasis{Float64},N::Int64=sb.NumDerivArgs)
 		end
 		dBFdx!(sb, N)
 		d2BFdx2!(sb, N)
-	elseif is(sb.NumDeriv,1)
+	elseif ===(sb.NumDeriv,1)
 		Tn!(sb)
 		for d in eachindex(sb.x), p in eachindex(sb.BF[1])
 			BF!(sb, p, d, 1)
 			dBFdz!(sb, p, d, 1, N) 				# Jac
 		end
 		dBFdx!(sb, N)
-	elseif is(sb.NumDeriv,0)
+	elseif ===(sb.NumDeriv,0)
 		Tn!(sb)
 		for d in eachindex(sb.x), p in eachindex(sb.BF[1])
 			BF!(sb, p, d, 1) 					# Now need to multiply over dimension to create a NBF-vector of Basis Function at grid point i. END OF LOOP → NumBF x NumPts for all grid points. 
