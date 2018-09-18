@@ -2,224 +2,74 @@
 #= Smolyak Grid Type =#
 #= ***************** =#
 
-"""
-## Description
-
-Smolyak Grid type. Both Anisotrophic and Isotrophic Grids are supported 
-and they are constructed efficiently following the methodology outlined in
-Judd, Maliar, Maliar, Valero (2014). The code is designed for Julia v0.4.
-
-#### Fields
-
-- `D :: Int64` : Dimensions
-- `mu :: ScalarOrVec{Int64}` : Index of mu
-- `NumGrdPts :: Int64` : Number of Grid Points
-- `lb :: Vector{Float64}` : Lower Bounds of dimensions
-- `ub :: Vector{Float64}` : Upper Bounds of dimensions
-- `zGrid :: AA{Float64}` : Smolyak Grid on z = [-1,1]
-- `xGrid :: AA{Float64}` : Smolyak Grid on original domain x in [lb,ub]
-- `Binds :: AA{Int64}` : Input to construct Basis Functions 
-
-**Notes**: 'AA{T}' is type alias for 'Array{Array{T,1},1}' and 'AAA{T}' is defined analogously, etc.
- See ?Smolyak for list of typealias used in the package.
-
-## Constructor function
-
-`sg = SmolyakGrid(mu,lb,ub,D)`
-
-where 
-
-- `mu :: ScalarOrVec{Int64}`
-- `lb :: Vector{Float64} = -1*ones(Float64,length(mu))`
-- `ub :: Vector{Float64} = ones(Float64,length(mu))`
-- `D :: Int64 = length(mu)`
-
-**Notes**: lb, ub, and D have default settings and can be omitted. In particular, D 
-would be omitted in most calls.
-
-## Examples
-
-```julia
-using Smolyak
-mu = [2,2,2]
-lb = -2.*ones(length(mu))
-ub = 3.*ones(length(mu))
-sg = SmolyakGrid(mu,lb,ub)
-```
-"""
-mutable struct SmolyakGrid{T}
-	D 			::	Int64				# Dimensions
-	mu 			::	T					#Index of mu
-	NumGrdPts 	::	Int64				# Number of Grid Points
-	lb 			::	Vector{Float64}		# Lower Bounds of dimensions
-	ub 			::	Vector{Float64}		# Upper Bounds of dimensions
-	zGrid 		::	AA{Float64}			# Smolyak Grid on z = [-1,1]
-	xGrid 		::	AA{Float64}			# Smolyak Grid on original domain x in [lb,ub]
-	Binds    	::  AA{Int64}			# Input to construct Basis Funs for set of grid points -> Will depend on mu.
+struct SmolyakGrid{T<:Real} 
+	sk 		:: SmolyakKernel	# SmolyakKernel
+	N 		:: Int64 			# Number of Grid Points
+	grid  	:: VV{T}			# Smolyak Grid on z <- x2z!() (i.e. if doing collocation, usine Chebyshev and [z_lb,z_ub]∈[-1,1])
 end
 
-function SmolyakGrid(mu::Vector{Int64},lb::Vector{Float64}=-1*ones(Float64,length(mu)), ub::Vector{Float64}=ones(Float64,length(mu)),D::Int64=length(lb))
+# Call with Smolyak Kernal setup
+function SmolyakGrid(sk::SmolyakKernel) where T<:SmolyakKernelType
 	
-	# Setup
-	NumGrdPts, Ginds = SmolIdx(tuple(mu...))
-	z = Vector{Float64}[Array{Float64}(D) for r in 1:NumGrdPts]
-	x = Vector{Float64}[Array{Float64}(D) for r in 1:NumGrdPts]
-	Binds = Vector{Int64}[Array{Int64}(D) for r in 1:NumGrdPts]
-
-	# Make Grid and Indices
-	makeGrid!(z,Ginds,tuple(mu...))			# Make Grid on [-1,1]
-	z2x!(z,x,lb,ub) 						# Grid on X
-	makeBasisIdx!(Binds,Ginds,tuple(mu...)) # Basis Function Indices
-
-	return SmolyakGrid(D, mu, NumGrdPts, lb, ub, z, x, Binds)
-end
-
-function SmolyakGrid(mu::Int64,lb::Vector{Float64}=-1*ones(Float64,mu), ub::Vector{Float64}=ones(Float64,mu),D::Int64=length(lb))
+	NGP = makeNumGridPts(sk.GridIdx,(sk.mu...,)) 
+	grid = Vector{Float64}[Array{Float64}(undef,sk.D) for r in 1:NGP]
+	makeGrid!(grid,sk.GridIdx,tuple(sk.mu...,))			# Make Grid on [-1,1]
 	
-	# Setup
-	NumGrdPts, Ginds = SmolIdx(tuple(mu...))
-	z = Vector{Float64}[Array{Float64}(D) for r in 1:NumGrdPts]
-	x = Vector{Float64}[Array{Float64}(D) for r in 1:NumGrdPts]
-	Binds = Vector{Int64}[Array{Int64}(D) for r in 1:NumGrdPts]
-
-	# Make Grid and Indices
-	makeGrid!(z,Ginds,tuple(mu...))			# Make Grid on [-1,1]
-	z2x!(z,x,lb,ub) 						# Grid on X
-	makeBasisIdx!(Binds,Ginds,tuple(mu...)) # Basis Function Indices
-
-	return SmolyakGrid(D, mu, NumGrdPts, lb, ub, z, x, Binds)
+	return SmolyakGrid(sk, NGP, grid)
 end
 
-function SmolyakGrid(mu::Int64,lb::Vector{Int64}, ub::Vector{Int64},D::Int64=length(lb))
+# Set up Smolyak Kernel internally
+function SmolyakGrid(D::Int64, mu_level::T; HD::Bool=false) where T<:Real
 	
-	lb_float = convert(Vector{Float64},lb)
-	ub_float = convert(Vector{Float64},ub)
+	sk = SmolyakKernel(D, mu_level; HD=HD)
+	NGP = makeNumGridPts(sk.GridIdx,(sk.mu...,)) 
+	grid = Vector{Float64}[Array{Float64}(undef,sk.D) for r in 1:NGP]
+	makeGrid!(grid,sk.GridIdx,tuple(sk.mu...,))			# Make Grid on [-1,1]
 
-	# Setup
-	NumGrdPts, Ginds = SmolIdx(tuple(mu...))
-	z = Vector{Float64}[Array{Float64}(D) for r in 1:NumGrdPts]
-	x = Vector{Float64}[Array{Float64}(D) for r in 1:NumGrdPts]
-	Binds = Vector{Int64}[Array{Int64}(D) for r in 1:NumGrdPts]
-
-	# Make Grid and Indices
-	makeGrid!(z,Ginds,tuple(mu...))			# Make Grid on [-1,1]
-	z2x!(z,x,lb_float,ub_float) 						# Grid on X
-	makeBasisIdx!(Binds,Ginds,tuple(mu...)) # Basis Function Indices
-
-	return SmolyakGrid(D, mu, NumGrdPts, lb_float, ub_float, z, x, Binds)
+	return SmolyakGrid(sk, NGP, grid)
 end
 
-function SmolyakGrid(mu::Vector{Int64},lb::Vector{Int64}, ub::Vector{Int64},D::Int64=length(lb))
+function SmolyakGrid(mu::Vector{T}; HD::Bool=false) where T<:Real
+
+	sk = SmolyakKernel(mu; HD=HD)
+	NGP = makeNumGridPts(sk.GridIdx,(sk.mu...,)) 
+	grid = Vector{Float64}[Array{Float64}(undef,sk.D) for r in 1:NGP]
+	makeGrid!(grid,sk.GridIdx,tuple(sk.mu...,))			# Make Grid on [-1,1]
 	
-	lb_float = convert(Vector{Float64},lb)
-	ub_float = convert(Vector{Float64},ub)
-
-	# Setup
-	NumGrdPts, Ginds = SmolIdx(tuple(mu...))
-	z = Vector{Float64}[Array{Float64}(D) for r in 1:NumGrdPts]
-	x = Vector{Float64}[Array{Float64}(D) for r in 1:NumGrdPts]
-	Binds = Vector{Int64}[Array{Int64}(D) for r in 1:NumGrdPts]
-
-	# Make Grid and Indices
-	makeGrid!(z,Ginds,tuple(mu...))			# Make Grid on [-1,1]
-	z2x!(z,x,lb_float,ub_float) 						# Grid on X
-	makeBasisIdx!(Binds,Ginds,tuple(mu...)) # Basis Function Indices
-
-	return SmolyakGrid(D, mu, NumGrdPts, lb_float, ub_float, z, x, Binds)
+	return SmolyakGrid(sk, NGP, grid)
 end
 
-function show(io::IO, sg::SmolyakGrid)
-	if !=(minimum(sg.mu),maximum(sg.mu))
-			mu_print = strip(string(sg.mu))
-			msg = "Anisotrophic Smolyak Grid:\n"
-			msg *= "\tD: $(sg.D)\n\tmu: $(mu_print)\n\tNum Grid Points: $(sg.NumGrdPts)"
-	else
-		msg = "Isotrophic Smolyak Grid:\n"
-		msg *= "\tD: $(sg.D)\n\tmu: $(sg.mu[1])\n\tNum Grid Points: $(sg.NumGrdPts)"
-	end
-	print(io, msg)
-end
-
-#= ***************************************** =#
-#= Sub Funs called when creating SmolyakGrid =#
-#= ***************************************** =#
-
-# This fn returns theta = cos.(x), where x are chebyshev nodes
-function chebtheta(n::Int64)	
-	===(n,1) ? 0.5pi : nothing 
-	return [0:n-1;]pi./(n-1)
-end	
-
-function chebnodes(n::Int64)	
-	return round.(cos.(chebtheta(n)),14)
-end
-
-# This is the map from index to number of grid points in each dimension
-function m_i(i::Int64)
-	===(i,1) ? 1 : 2.^(i-1)+1
-end
-
-# This is number of new points added by nested rule as function of index i ( = l+1 in Burkhardt)
-function newpts(i::Int64)
-	if <=(i,2)
-		return i 
-	else
-		return 2.^(i-2)
-	end
-end
-
-# Disjoint Sets of Grid Points whose product are combined 
-function grid_A_i(i::Int64)
-	if ===(i,1)
-		return 0.0
-	elseif ===(i,2)
-		return chebnodes(m_i(i))[1:2:m_i(i)]
-	else
-		return chebnodes(m_i(i))[2:2:m_i(i)] 
-	end 	
-end
-
-#= ******************************* =#
-#= Funs used to create SmolyakGrid =#
-#= ******************************* =#
-
-# Calculate Number of Grid Points & Construct Indices of Smolyak Grid
-@generated function SmolIdx{N}(mu::NTuple{N,Int64} )
-	quote
-		max_mu=0
-		for i in 1:$N
-			max_mu = max(max_mu,mu[i])
-		end
-		iList= Array{Int64,1}[]
-		ibar = Int64[]
-		n = Int64[]
-		NumGridPts = 0
-		sum_i = 0 
-		@nloops $N i j->1:mu[j]+1 begin
-			@nexprs $N j -> push!(n,newpts(i_j))
-			@nexprs $N j -> sum_i += i_j 
-			if sum_i > $N + max_mu
-				ibar = Int64[]
-				n = Int64[]
-				sum_i=0
-				break
-			end
-			@nexprs $N j-> push!(ibar, i_j)
-			push!(iList,ibar)
-			NumGridPts += prod(n)
-			ibar = Int64[]
-			n = Int64[]
-			sum_i=0
-		end
-		return NumGridPts, iList
-	end
-end
+# Set up Smolyak Kernel internally
+function SmolyakGrid(D::Int64, mu_level::T, xbnds::Matrix{S}; HD::Bool=false) where T<:Real where S<:Real
 	
-@generated function makeGrid!{N}(H::AA{Float64},inds::AA{Int64},mu::NTuple{N,Int64})
+	sk = SmolyakKernel(D, mu_level, xbnds; HD=HD)
+	NGP = makeNumGridPts(sk.GridIdx,(sk.mu...,)) 
+	grid = Vector{Float64}[Array{Float64}(undef,sk.D) for r in 1:NGP]
+	makeGrid!(grid,sk.GridIdx,tuple(sk.mu...,))			# Make Grid on [-1,1]
+
+	return SmolyakGrid(sk, NGP, grid)
+end
+
+# Set up Smolyak Kernel internally
+function SmolyakGrid(mu::Vector{T}, xbnds::Matrix{S}; HD::Bool=false) where T<:Real where S<:Real
+	
+	sk = SmolyakKernel(mu, xbnds; HD=HD)
+	NGP = makeNumGridPts(sk.GridIdx,(sk.mu...,)) 
+	grid = Vector{Float64}[Array{Float64}(undef,sk.D) for r in 1:NGP]
+	makeGrid!(grid,sk.GridIdx,tuple(sk.mu...,))			# Make Grid on [-1,1]
+
+	return SmolyakGrid(sk, NGP, grid)
+end
+
+#= ******************************************************** =#
+#= 		Functions to make the Smolyak Grid 				    =#
+#= ******************************************************** =#
+
+@generated function makeGrid!(H::VV{Float64},inds::VV{Int64},mu::NTuple{N,T}) where N where T<:Real
 	quote 
 		zH = 0
 		for i = 1:length(inds)
-			for j in product((@ntuple $N k->grid_A_i(inds[i][k]))...)
+			for j in Iterators.product((@ntuple $N k->grid_A_i(inds[i][k]))...)
 				zH += 1
 				for w in 1:$N
 					H[zH][w] = j[w]
@@ -227,87 +77,5 @@ end
 			end
 		end
 		return H
-	end
-end
-
-#= ******************************************* =#
-#= Create Basis Funs Indices SmolyakGrid(d,mu) =#
-#= ******************************************* =#
-
-# Disjoint sets that define indexes for creation of Basis Indices
-function A_pidx(ibar::Int64)
-	A = []
-	lb 	= [1;2;2.^(collect(3:ibar)-1) - 2.^(collect(3:ibar)-2)+2]
-	ub 	= [1;2.^(collect(2:ibar)-1)+1]
-	for j = 1:ibar
-		push!(A,collect(lb[j]:ub[j]))
-	end
-	return A
-end
-
-# Make Basis Function Indexes
-@generated function makeBasisIdx!{N}(Binds::AA{Int64},GridIdx::AA{Int64},mu::NTuple{N,Int64})
-	quote
-		max_mu=0
-		for i in 1:$N
-			max_mu = max(max_mu,mu[i])
-		end
-		A = A_pidx(max_mu+1)
-		zT = 0
-		for i = 1:length(GridIdx)
-			for j in product((@ntuple $N k->A[GridIdx[i][k]])...)
-				zT += 1
-				for w in 1:$N
-					Binds[zT][w] = j[w]-1
-				end
-			end
-		end
-		return Binds
-	end
-end
-
-#= ******************************************************** =#
-#= Functions switching between z in [-1,1] and x in [lb,ub] =#
-#= ******************************************************** =#
-
-# In place coordinate transform for vector: z→x
-function z2x!(sg::SmolyakGrid)
-	for n in eachindex(sg.zGrid), d in eachindex(sg.mu)
-		sg.xGrid[n][d] = 0.5*( sg.ub[d] + sg.lb[d] + sg.zGrid[n][d]*(sg.ub[d] - sg.lb[d]) )
-	end
-end
-
-# In place coordinate transform for vector: z→x
-function z2x!(z::Vector{Float64},x::Vector{Float64},lb::Vector{Float64},ub::Vector{Float64})
-	for d in eachindex(z)
-		x[d] = 0.5*( ub[d] + lb[d] + z[d]*(ub[d] - lb[d]) )
-	end
-end
-
-# In place coordinate transform for Array: z→x
-function z2x!(z::AA{Float64},x::AA{Float64},lb::Vector{Float64},ub::Vector{Float64})
-	for n in eachindex(z), d in eachindex(z[1])
-		x[n][d] = 0.5*( ub[d] + lb[d] + z[n][d]*(ub[d] - lb[d]) )
-	end
-end
-
-# In place coordinate transform for vector: x→z
-function x2z!(sg::SmolyakGrid)
-	for n in eachindex(sg.xGrid), d in eachindex(sg.mu)
-		sg.zGrid[n][d] = (2sg.xGrid[n][d] - sg.ub[d] - sg.lb[d])/(sg.ub[d] - sg.lb[d])
-	end
-end
-
-# In place coordinate transform for vector: x→z
-function x2z!(x::Vector{Float64},z::Vector{Float64},lb::Vector{Float64},ub::Vector{Float64})
-	for d in eachindex(z)
-		z[d] = (2x[d] - ub[d] - lb[d])/(ub[d] - lb[d]) 
-	end
-end
-
-# In place coordinate transform for vector: x→z
-function x2z!(x::AA{Float64},z::AA{Float64},lb::Vector{Float64},ub::Vector{Float64})
-	for n in eachindex(z), d in eachindex(x[1])
-		z[n][d] = (2x[n][d] - ub[d] - lb[d])/(ub[d] - lb[d]) 
 	end
 end

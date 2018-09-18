@@ -5,49 +5,44 @@ Module contains code to define Smolyak Grids and construct corresponding Interpo
 Polynomials. Both Anisotrophic and Isotrophic Grids/Polynomials are supported and are constructed 
 efficiently following the methodology outlined in Judd, Maliar, Maliar, Valero (2014). 
 
-The code is designed for Julia version: 0.4.
+It supports construction of Smolyak Polynomials with Ordinary, Chebyshev and Spread Polynomial basis functions.
 
-#### Types 
+The code is designed for Julia version: 0.7.
 
-3 main components with corresponding types:
-
-- `SmolyakGrid` : Smolyak Grid
-- `SmolyakBasis` : Smolyak Basis
-- `SmolyakPoly` : Smolyak Polynomial
-
-See help functions in REPL for details.
-
-**Notes**: Utilises following typealiases:
-
-```julia
-typealias AA{T} Array{Array{T,1},1}
-typealias AM{T} Array{Matrix{T},1}                                                                                 
-typealias AAA{T} Array{Array{Array{T,1},1},1}
-typealias AAAA{T} Array{Array{Array{Array{T,1},1},1},1}
-typealias ScalarOrVec{T} Union{T,Vector{T}}
-```
 """
 module Smolyak
 
-using Base.Cartesian, Base.LinAlg, Iterators
+using Base.Cartesian
+#using Iterators
+using LinearAlgebra
 import Base.show 
 
-AA{T} = Array{Array{T,1},1}
-AM{T} = Array{Matrix{T},1}                                                                                 
-AAA{T} = Array{Array{Array{T,1},1},1}
-AAAA{T} = Array{Array{Array{Array{T,1},1},1},1}
-ScalarOrVec{T} = Union{T,Vector{T}}
+# Type aliases 
+VV{T} = Vector{Vector{T}}
+VM{T} = Vector{Matrix{T}}
 
 # Load Files
-include("smolgrid.jl")
+
+include("smolkernel.jl")
 include("smolyakHD.jl")
+include("smolgrid.jl")
+
+include("BasisFunctions.jl")
+include("OrdinaryPolynomials.jl")
+include("ChebyshevPolynomials.jl")
+
 include("smolbasis.jl")
 include("smolpoly.jl")
 
 # Make functions defined in the module available =#
-export 	SmolyakGrid, makeGrid!, x2z, z2x, x2z!, z2x!,
-		SmolyakHD, makeHDSmolIdx, makeNumGridPts,
-		SmolyakBasis, makeBasis!, new_x!, updateBasis!,
-		SmolyakPoly, makeValue!, makeGrad!, makeHess!, make_pinvBFt!, makeCoef!
+export 	SmolyakKernel, makeBasisIdx!,
+		makeHDSmolIdx, makeNumGridPts,
+		SmolyakGrid, makeGrid!, 
+		lineartransform, x2z, z2x, dxdz, dzdx,
+		OrdinaryPoly, ChebyShevPoly, SpreadPoly, makeBF!, 
+		SmolyakBasis, new_x!, makeJacobian!, makeHessian!, makeSmolyakBasis!,
+		SmolyakPoly, update_coef!, makeSmolyakPoly!, makeValue!, getValue, 
+		get_dWdx, make_dWdx!, makeGradient!,
+		get_d2Wdx2, make_d2Wdx2!, makeHessian!, makeSmolyakPoly!
 
 end
