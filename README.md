@@ -30,8 +30,7 @@ The module is designed around a `SmolyakKernel` type. It contains all informatio
 Below is an example of how to use module to:
 
 1. Create a Smolyak Kernel
-2. Define Smolyak Basis functions of an Interpolating Smolyak Polynomial on the Smolyak Grid
-3. Create and evaluate the Smolyak Polynomial
+2. Create and evaluate the Smolyak polynomial
 
 ```
 using Smolyak
@@ -62,66 +61,95 @@ grid = VVtoMatrix(sg.grid)
 See [SmolyakGridExample.jl](./Examples/SmolyakGridExample.) for plots of 2-dimensional Smolyak Grids. 
 
 ![](./Examples/IsotrophicSmolyakGridExample.png)
-![](./Examples/AnisotrophicSmolyakGridExample.png)
 
 # Creating a Smolyak Polynomial
 
-Smolyak polynomials require a SmolyakKernel and choice of basis function to use when building up tensor products. 
+Smolyak polynomials require a `SmolyakBasis`. 
 
-- SmolyakKernel
-- SmolyakBasis defined using sk at state vector x 
-- Coefficients
+The `SmolyakBasis` contains all of the information necessary to apply Smolyak algorithm to tensors of a chosen type of polynomial basis functions. The available options for the type of basis functions are `:ordinary`, `:chebyshev`, or `:spread` polynomials. 
 
-The Smolyak basis can be automatically called in the SmolyakPoly() call. However, the user must specify type of basis function to use: ∈{:ordinary, :chebyshev, :spread} in the SmolyakPoly() function.
- 
-Initiate Basis function - with memory allcoated for up to 2 derivatives (optional)
+The `SmolyakBasis`  can be built using the `SmolyakKernel` or by specifying the accuracy levels and variables bounds directly. I show the former below.
 
 ```
 # Choose type of polynomial basis function
 basis_fun_type = :chebyshev;
+```
 
-# Option 1: Setup Smolyak polynomial using Smolyak basis 
+Initiate the Smolyak Polynomial - with memory allocated for up to 2 derivatives. Of course, to save space in memory the user can choose not to allocate memory for the gradient and hessian fields by setting `NumDeriv=0` (or omit memory for hessian only by setting `NumDeriv=1`). 
+
+- Option 1: Setup Smolyak polynomial using Smolyak basis formed using the Smolyak kernel, `sk` defined above.
+
+```
 sb = SmolyakBasis(basis_fun_type, sk; NumDeriv=2);
 sp = SmolyakPoly(sb; NumDeriv=2);
+```
 
-# Option 2: Setup Smolyak polynomial directly
+- Option 2: Setup Smolyak polynomial using Smolyak kernel, `sk`, directly
+
+```
 sp = SmolyakPoly(basis_fun_type, sk; NumDeriv=2);
+```
 
-# Initialise coefficients: update Smolyak polynomial at stored x
+Once intialised input/update coefficients and update Smolyak polynomial. 
+
+```
 θ = rand(length(sp.sb.BF));
 makeSmolyakPoly!(θ, sp; NumDeriv=2);
+```
 
-# Print updated fields
-sp.value
-sp.gradient
-sp.hessian
+Or update the state vector an recalculate value, gradient and hessian.
 
-# Add a new x: update Smolyak polynomial at stored θ
+```
+# Add a new state: update Smolyak polynomial at stored θ
 x = [-1.0, 2.3];
 makeSmolyakPoly!(sp, x; NumDeriv=2);
+```
 
-# Print updated fields
-sp.value
-sp.gradient
-sp.hessian
+Or update both the state and coefficient vector:
 
+```
 # Add a new θ  & x: update Smolyak polynomial
 θ = rand(length(sp.sb.BF));
 x = [-1.0, 2.3];
 makeSmolyakPoly!(θ, sp, x; NumDeriv=2);
+```
 
+_Note: In the above calls if NumDeriv=2, this will update the value, gradient and hesssian/ If NumDeriv=1 the value and gradient are updated. If NumDeriv=0, only the value is updated._
+
+After the update the updated fields are:
+
+```
 # Print updated fields
 sp.value
 sp.gradient
 sp.hessian
+```
 
-# Can also calculate individual term wihout full update 
-sp.value[1] == getValue(sp)
-sp.gradient[1] == get_dWdx(sp, 1) 
-sp.gradient[2] == get_dWdx(sp, 2) 
-sp.hessian[1,1] == get_d2Wdx2(sp, 1, 1) 
-sp.hessian[1,2] == get_d2Wdx2(sp, 1, 2) 
-sp.hessian[2,2] == get_d2Wdx2(sp, 2, 2) 
+The user can also get update the coefficient or state vector separately. 
+
+```
+# Update Coefficient
+update_coef!(sp, θ);
+
+# And/or update state vector & update basis fucntions
+update_state!(sp, x);
+makeSmolyakBasis!(sp);
+```
+
+Then calculate the value, or specific component of the gradient and hessian using:
+
+```
+# Value of smolyak polynomial at new state / θ 
+getValue(sp)
+
+# Derivative of Smolyak polynomial wrt. to dimension d_i
+d_i = 1;
+get_dWdx(sp, d_i)
+
+# Cross derivatives wrt. to dimensions [d_i,d_j]
+d_i = 1;
+d_j = 2;
+get_d2Wdx2(sp, d_i, d_j)
 ```
 
 
