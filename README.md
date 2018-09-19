@@ -59,9 +59,10 @@ sg.grid
 grid = VVtoMatrix(sg.grid)
 ```
 
-See [SmolyakGridExample.jl](./Example/SmolyakGridExample.jl) for plots of 2-dimensional Smolyak Grids. 
+See [SmolyakGridExample.jl](./Examples/SmolyakGridExample.) for plots of 2-dimensional Smolyak Grids. 
 
-![](/Example/IsotrophicSmolyakGridExample.png)
+![](./Examples/IsotrophicSmolyakGridExample.png)
+![](./Examples/AnisotrophicSmolyakGridExample.png)
 
 # Creating a Smolyak Polynomial
 
