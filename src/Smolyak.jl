@@ -1,3 +1,5 @@
+VERSION < v"0.7.0-beta2.199" && __precompile__()
+
 """
 ## Description
 
@@ -14,7 +16,7 @@ module Smolyak
 
 using Base.Cartesian
 using LinearAlgebra
-import IterTools.partition
+using Combinatorics
 
 # Type aliases 
 VV{T} = Vector{Vector{T}}

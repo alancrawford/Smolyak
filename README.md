@@ -61,6 +61,8 @@ grid = VVtoMatrix(sg.grid)
 
 See [SmolyakGridExample.jl](./Example/SmolyakGridExample.jl) for plots of 2-dimensional Smolyak Grids. 
 
+![](/Example/IsotrophicSmolyakGridExample.png)
+
 # Creating a Smolyak Polynomial
 
 Smolyak polynomials require a SmolyakKernel and choice of basis function to use when building up tensor products. 
