@@ -13,22 +13,29 @@ Judd, Maliar, Maliar, Valero (2014). The code is designed for Julia v0.7.
 struct SmolyakBasis{T<:Real}
 	sk 			:: SmolyakKernel 			# Smolyak kernel
 	ubf 		:: UnivariateBasisFunction  # Basis in each dimension for tensor prods for Smol Basis 			
-	BF 			:: Vector{T}
+	state 		:: Vector{T} 				# State Vector
+	BF 			:: Vector{T}				# Basis Functions 
 	jacobian 	:: VV{T} 					# Jacobian of basis funs wrt x
 	hessian 	:: VM{T}					# Hessian of basis funs wrt x
 end
 
 # Create SmolyakBasis having defined bounds of x & z in Smolyak Kernel
-function SmolyakBasis(x::Vector{T},  ubf_type::Symbol, sk::SmolyakKernel; NumDeriv::Int64=2, NumDerivArgs::Int64=sk.D) where T<:Real
+function SmolyakBasis(x::Vector{T},  ubf_type::Symbol, sk::SmolyakKernel; 
+							NumDeriv::Int64=2, NumDerivArgs::Int64=sk.D, DefaultDomain::Bool=true) where T<:Real
 
 	@assert length(x) == sk.D
 
+	# Note that defined in this way changes in sk.(x/z)bnds are linked directly to poly bounds fields 
+	# If user doesn't want this then define new methods with deepcopy(sk.zbnds) etc. as arguments.
 	if ubf_type == :ordinary
-		ubf = OrdinaryPoly(x, getOrder(sk), sk.xbnds, sk.zbnds)
+		DefaultDomain ? copyto!(sk.zbnds, sk.xbnds) : nothing  
+		ubf = OrdinaryPoly(x, getOrder(sk), sk.xbnds, sk.zbnds) 
 	elseif ubf_type == :chebyshev
+		DefaultDomain ? copyto!(sk.zbnds, [[-one(T),one(T)] for d in 1:sk.D]) : nothing  
 		ubf = ChebyshevPoly(x, getOrder(sk), sk.xbnds, sk.zbnds)
 	elseif ubf_type == :spread
-		ubf = SpreadPoly(x, getOrder(sk), sk.xbnds)
+		DefaultDomain ? copyto!(sk.zbnds , [[zero(T),one(T)] for d in 1:sk.D]) : nothing  
+		ubf = SpreadPoly(x, getOrder(sk), sk.xbnds, sk.zbnds)
 	else 
 		throw("Unsupported basis function, call ubf_type ∈ {:ordinary, :chebyshev, :spread}")
 	end
@@ -50,11 +57,12 @@ function SmolyakBasis(x::Vector{T},  ubf_type::Symbol, sk::SmolyakKernel; NumDer
 		throw("Up to 2 derivatives hand coded. If want more set NumDeriv=0 and use ForwardDiff.jl functionality")
 	end
 
-	SmolyakBasis(sk, ubf, BF, jacobian, hessian)
+	SmolyakBasis(sk, ubf, x, BF, jacobian, hessian)
 end
 
 # Create SmolyakBasis having defined bounds of x & z in Smolyak Kernel
-function SmolyakBasis( ubf_type::Symbol, sk::SmolyakKernel; NumDeriv::Int64=2, NumDerivArgs::Int64=sk.D)
+function SmolyakBasis( ubf_type::Symbol, sk::SmolyakKernel; 
+					NumDeriv::Int64=2, NumDerivArgs::Int64=sk.D,DefaultDomain::Bool=true)
 
 	x = rand(sk.D)
 	T = eltype(x)
@@ -62,11 +70,14 @@ function SmolyakBasis( ubf_type::Symbol, sk::SmolyakKernel; NumDeriv::Int64=2, N
 	@assert length(x) == sk.D
 
 	if ubf_type == :ordinary
+		DefaultDomain ? copyto!(sk.zbnds, sk.xbnds) : nothing  
 		ubf = OrdinaryPoly(x, getOrder(sk), sk.xbnds, sk.zbnds)
 	elseif ubf_type == :chebyshev
+		DefaultDomain ? copyto!(sk.zbnds, [[-one(T),one(T)] for d in 1:sk.D]) : nothing  
 		ubf = ChebyshevPoly(x, getOrder(sk), sk.xbnds, sk.zbnds)
 	elseif ubf_type == :spread
-		ubf = SpreadPoly(x, getOrder(sk), sk.xbnds)
+		DefaultDomain ? copyto!(sk.zbnds , [[zero(T),one(T)] for d in 1:sk.D]) : nothing  
+		ubf = SpreadPoly(x, getOrder(sk), sk.xbnds, sk.zbnds)
 	else 
 		throw("Unsupported basis function, call ubf_type ∈ {:ordinary, :chebyshev, :spread}")
 	end
@@ -88,7 +99,7 @@ function SmolyakBasis( ubf_type::Symbol, sk::SmolyakKernel; NumDeriv::Int64=2, N
 		throw("Up to 2 derivatives hand coded. If want more set NumDeriv=0 and use ForwardDiff.jl functionality")
 	end
 
-	SmolyakBasis(sk, ubf, BF, jacobian, hessian)
+	SmolyakBasis(sk, ubf, x, BF, jacobian, hessian)
 end
 
 # Get the order of the basis functions
@@ -102,11 +113,12 @@ end
 
 getOrder(sk::SmolyakKernel) = getOrder(sk.BasisIdx, sk.D)
 
+
 # -------- New state to evaluate Smolyak Interpolant f(D,mu) where sb.use ------
 
 # New state vector -> applicable when sb.x is a vector
 
-new_x!(sb::SmolyakBasis,x::Vector{Float64}) = copyto!(sb.ubf.x, x)
+new_state!(sb::SmolyakBasis,x::Vector{Float64}) = copyto!(sb.state, x)
 
 # ----------- BF & derivaitves ----------- # 
 
@@ -155,11 +167,14 @@ end
 # Smolyak Basis at existing x
 function makeSmolyakBasis!(sb::SmolyakBasis; NumDeriv::Int64=0) where T<:Real
 	if NumDeriv==0
+		makeBF!(sb.ubf; NumDeriv=NumDeriv)
 		makeBF!(sb)
 	elseif NumDeriv==1
+		makeBF!(sb.ubf; NumDeriv=NumDeriv)
 		makeBF!(sb)
 		makeJacobian!(sb)
 	elseif NumDeriv==2
+		makeBF!(sb.ubf; NumDeriv=NumDeriv)
 		makeBF!(sb)
 		makeJacobian!(sb)
 		makeHessian!(sb)
@@ -171,14 +186,17 @@ end
 # Smolyak Basis at new x
 function makeSmolyakBasis!(sb::SmolyakBasis, x::Vector{T}; NumDeriv::Int64=0) where T<:Real
 	if NumDeriv==0
-		new_x!(sb, x)
+		new_state!(sb, x)
+		makeBF!(sb.ubf; NumDeriv=NumDeriv)
 		makeBF!(sb)
 	elseif NumDeriv==1
-		new_x!(sb, x)
+		new_state!(sb, x)
+		makeBF!(sb.ubf; NumDeriv=NumDeriv)
 		makeBF!(sb)
 		makeJacobian!(sb)
 	elseif NumDeriv==2
-		new_x!(sb, x)
+		new_state!(sb, x)
+		makeBF!(sb.ubf; NumDeriv=NumDeriv)
 		makeBF!(sb)
 		makeJacobian!(sb)
 		makeHessian!(sb)

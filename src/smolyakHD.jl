@@ -6,7 +6,7 @@ function makeHDSmolIdx(mu::Vector{Int64})
 	D = length(mu)
 	parts = Vector{Int64}[]
 	for d in D:D+mu_max
-		push!(parts,collect(partitions(d,D))...)
+		push!(parts,collect(Iterators.partition(d,D))...)
 	end
 
 	Out = ones(Int64,D)'

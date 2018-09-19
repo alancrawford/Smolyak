@@ -13,24 +13,22 @@ The code is designed for Julia version: 0.7.
 module Smolyak
 
 using Base.Cartesian
-#using Iterators
 using LinearAlgebra
-import Base.show 
+import IterTools.partition
 
 # Type aliases 
 VV{T} = Vector{Vector{T}}
 VM{T} = Vector{Matrix{T}}
 
 # Load Files
-
+include("utils.jl")
 include("smolkernel.jl")
 include("smolyakHD.jl")
 include("smolgrid.jl")
-
 include("BasisFunctions.jl")
 include("OrdinaryPolynomials.jl")
 include("ChebyshevPolynomials.jl")
-
+include("SpreadPolynomials.jl")
 include("smolbasis.jl")
 include("smolpoly.jl")
 
@@ -43,6 +41,7 @@ export 	SmolyakKernel, makeBasisIdx!,
 		SmolyakBasis, new_x!, makeJacobian!, makeHessian!, makeSmolyakBasis!,
 		SmolyakPoly, update_coef!, makeSmolyakPoly!, makeValue!, getValue, 
 		get_dWdx, make_dWdx!, makeGradient!,
-		get_d2Wdx2, make_d2Wdx2!, makeHessian!, makeSmolyakPoly!
+		get_d2Wdx2, make_d2Wdx2!, makeHessian!, makeSmolyakPoly!,
+		VVtoMatrix, VV, VM
 
 end
