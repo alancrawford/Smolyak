@@ -233,6 +233,6 @@ plot(xpts, truefun.(xpts), w=2, marker=(:o,4), label=truefun)
 plot!(xpts, What, w=3, line=:dashdot, label="Approx. SP")
 ```
 
-![](./Examples/Interpolate.jl).
+![](./Examples/Interpolate.png)
 
 Examples of multi-dimensional interpolation can be found in [runtests.jl](./test/runtests.jl).

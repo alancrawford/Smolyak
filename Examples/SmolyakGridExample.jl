@@ -1,5 +1,5 @@
 using Smolyak, Plots
-pyplot()
+gr()
 
 
 # Isotrophic Smolyak Grid in 2-dimensions
