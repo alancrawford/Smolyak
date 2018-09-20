@@ -180,7 +180,7 @@ truefun(x) = 1.1 + x[1]^3
 xbnds = [[-2.0, 10.0]
 ```
 
-Suppose we wish to use a Smolyak Polynomial with Spread polynomial basis function and an accuracy level 3 dimenison to approximate this function on x = [-2.0, 10.0].
+Suppose a Smolyak Polynomial with spread polynomial basis functions and accuracy level 3 is used to approximate this function on x = [-2.0, 10.0].
 
 ```
 # Intiate Smolyak Components
@@ -191,7 +191,7 @@ sk = SmolyakKernel(dims, accuracy, xbnds);
 sp = SmolyakPoly(:spread, sk; NumDeriv=0);
 ```
 
-In this example, we will use the grid points of the corresponding Smolyak grid to evaluate the true function and use it fit coefficients.
+In this example, the corresponding Smolyak grid is used to evaluate the true function and fit coefficients.
 
 ```
 # Get true values of function at grid points
