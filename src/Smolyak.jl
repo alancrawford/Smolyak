@@ -35,15 +35,22 @@ include("smolbasis.jl")
 include("smolpoly.jl")
 
 # Make functions defined in the module available =#
-export 	SmolyakKernel, makeBasisIdx!,
-		makeHDSmolIdx, makeNumGridPts,
-		SmolyakGrid, makeGrid!, 
+export 	VVtoMatrix, VV, VM,
+		SmolyakKernel, BasisIdx!,
+		HDSmolIdx, NumGridPts,
+		SmolyakKernel,
+		SmolyakGrid, 
+		grid!,
+		grid, xgrid, 
 		lineartransform, x2z, z2x, dxdz, dzdx,
-		OrdinaryPoly, ChebyShevPoly, SpreadPoly, makeBF!, 
-		SmolyakBasis, new_x!, makeJacobian!, makeHessian!, makeSmolyakBasis!,
-		SmolyakPoly, update_coef!, makeSmolyakPoly!, makeValue!, getValue, 
-		get_dWdx, make_dWdx!, makeGradient!,
-		get_d2Wdx2, make_d2Wdx2!, makeHessian!, makeSmolyakPoly!,
-		VVtoMatrix, VV, VM
+		OrdinaryPoly, 
+		ChebyshevPoly, 
+		SpreadPoly,
+		SmolyakBasis, 
+		state!, BasisFunctions!, jacobian!, hessian!, SmolyakBasis!,
+		state, BasisFunctions, jacobian, hessian, SBoutput,
+		SmolyakPoly, 
+		coef!, value!, dWdx!, gradient!, d2Wdx2!, SmolyakPoly!,		
+		coef, value, dWdx, gradient, d2Wdx2, SPoutput
 
 end

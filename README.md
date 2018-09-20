@@ -54,6 +54,9 @@ sg = SmolyakGrid(sk);
 # View the vector of grid points
 sg.grid
 
+# View the vector of grid points in x-coordinates
+x(sg.grid)
+
 # Convert grid from vector of vectors to a matrix (i.e. for plot)
 grid = VVtoMatrix(sg.grid)
 ```
@@ -94,7 +97,7 @@ Once intialised input/update coefficients and update Smolyak polynomial.
 
 ```
 θ = rand(length(sp.sb.BF));
-makeSmolyakPoly!(θ, sp; NumDeriv=2);
+SmolyakPoly!(θ, sp; NumDeriv=2);
 ```
 
 Or update the state vector an recalculate value, gradient and hessian.
@@ -102,7 +105,7 @@ Or update the state vector an recalculate value, gradient and hessian.
 ```
 # Add a new state: update Smolyak polynomial at stored θ
 x = [-1.0, 2.3];
-makeSmolyakPoly!(sp, x; NumDeriv=2);
+SmolyakPoly!(x, sp; NumDeriv=2);
 ```
 
 Or update both the state and coefficient vector:
@@ -111,7 +114,7 @@ Or update both the state and coefficient vector:
 # Add a new θ  & x: update Smolyak polynomial
 θ = rand(length(sp.sb.BF));
 x = [-1.0, 2.3];
-makeSmolyakPoly!(θ, sp, x; NumDeriv=2);
+SmolyakPoly!(θ, sp, x; NumDeriv=2);
 ```
 
 _Note: In the above calls if NumDeriv=2, this will update the value, gradient and hesssian/ If NumDeriv=1 the value and gradient are updated. If NumDeriv=0, only the value is updated._
@@ -129,27 +132,27 @@ The user can also get update the coefficient or state vector separately.
 
 ```
 # Update Coefficient
-update_coef!(sp, θ);
+coef!(θ, sp);
 
 # And/or update state vector & update basis fucntions
-update_state!(sp, x);
-makeSmolyakBasis!(sp);
+state!(sp, x);
+SmolyakBasis!(sp.sb);
 ```
 
 Then calculate the value, or specific component of the gradient and hessian using:
 
 ```
 # Value of smolyak polynomial at new state / θ 
-getValue(sp)
+value(sp)
 
 # Derivative of Smolyak polynomial wrt. to dimension d_i
 d_i = 1;
-get_dWdx(sp, d_i)
+dWdx(sp, d_i)
 
 # Cross derivatives wrt. to dimensions [d_i,d_j]
 d_i = 1;
 d_j = 2;
-get_d2Wdx2(sp, d_i, d_j)
+d2Wdx2(sp, d_i, d_j)
 ```
 
 

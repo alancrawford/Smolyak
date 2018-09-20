@@ -13,6 +13,8 @@ struct SmolyakPoly{T<:Real}
 	hessidx 	:: Dict{Vector{Int64}, Vector{Int64}}
 end
 
+# --------------------- Constructor functions -------------------------- #
+
 function SmolyakPoly(x::Vector{T},  ubf_type::Symbol, sk::SmolyakKernel{T}; 
 							NumDeriv::Int64=0, NumDerivArgs::Int64=sk.D) where {T<:Real}
 	sb = SmolyakBasis(x, ubf_type, sk; NumDeriv=NumDeriv, NumDerivArgs=NumDerivArgs)
@@ -116,54 +118,37 @@ function getSparseIdx(sk::SmolyakKernel{T}; NumDeriv::Int64=0) where {T<:Real}
 	gradidx, hessidx
 end
 
+# --------------------- Updating functions -------------------------- #
+
 # Add methods to manipulate basis functions with SmolyakPolynomial Types
-makeSmolyakBasis!(sp::SmolyakPoly{T}; NumDeriv::Int64=0) where T<:Real = makeSmolyakBasis!(sp.sb; NumDeriv=NumDeriv)
-makeSmolyakBasis!(sp::SmolyakPoly{T}, x::Vector{T}; NumDeriv::Int64=0) where T<:Real = makeSmolyakBasis!(sp.sb, x; NumDeriv=NumDeriv)
+state!(x::Vector{T}, sp::SmolyakPoly{T}) where T<:Real  = state!(x, sp.sb)
 
 # Update Coefficient Vector
-update_coef!(sp::SmolyakPoly{T}, coef::Vector{T}) where T<:Real = copyto!(sp.coef, coef)
+coef!(coef::Vector{T}, sp::SmolyakPoly{T}) where T<:Real = copyto!(sp.coef, coef)
 
-# Value of Smolyak Polynomial
-getValue(sp::SmolyakPoly{T}) where T<:Real = dot(sp.sb.BF, sp.coef)
-
-function makeValue!(sp::SmolyakPoly{T}) where T<:Real
+# In-place update of value
+function value!(sp::SmolyakPoly{T}) where T<:Real
 	sp.value[1] = dot(sp.sb.BF, sp.coef)
 end
 
-# Make derivative wrt state variable d_i
-function get_dWdx(sp::SmolyakPoly{T}, d_i::Int64) where T<:Real
-	dWdx = zero(T)
-	for n in sp.gradidx[d_i]
-		dWdx += sp.sb.jacobian[n][d_i]*sp.coef[n]
-	end
-	dWdx
-end
-
-function make_dWdx!(sp::SmolyakPoly{T}, d_i::Int64) where T<:Real
+# In-place update of derivative wrt d_i
+function dWdx!(sp::SmolyakPoly{T}, d_i::Int64) where T<:Real
 	sp.gradient[d_i] = zero(T)
 	for n in sp.gradidx[d_i]
 		sp.gradient[d_i]  += sp.sb.jacobian[n][d_i]*sp.coef[n]
 	end
 end
 
-function makeGradient!(sp::SmolyakPoly{T}) where T<:Real
+# In-place update of gradient
+function gradient!(sp::SmolyakPoly{T}) where T<:Real
 	fill!(sp.gradient, zero(T))
 	@inbounds for d in 1:sp.sb.sk.D, n in sp.gradidx[d]
 		sp.gradient[d] += sp.sb.jacobian[n][d]*sp.coef[n]
 	end
 end
 
-# make cross-derivatives wrt state variable d_i, d_j
-function get_d2Wdx2(sp::SmolyakPoly{T}, d_i::Int64, d_j::Int64) where T<:Real
-	D2W = zero(T)
-	for n in sp.hessidx[[d_i,d_j]]
-		D2W += sp.sb.hessian[n][d_i,d_j]*sp.coef[n]
-	end
-	D2W
-end
-
 # Get cross-derivatives wrt state variable d_i, d_j
-function make_d2Wdx2!(sp::SmolyakPoly{T}, d_i::Int64, d_j::Int64) where T<:Real
+function d2Wdx2!(sp::SmolyakPoly{T}, d_i::Int64, d_j::Int64) where T<:Real
 	sp.hessian[d_i, d_j] = zero(T)
 	for n in sp.hessidx[[d_i,d_j]]
 		sp.hessian[d_i, d_j]  += sp.sb.hessian[n][d_i,d_j]*sp.coef[n]
@@ -171,8 +156,8 @@ function make_d2Wdx2!(sp::SmolyakPoly{T}, d_i::Int64, d_j::Int64) where T<:Real
 	sp.hessian[d_j, d_i] = sp.hessian[d_i, d_j]
 end
 
-# make cross-derivatives wrt state variable d_i, d_j
-function makeHessian!(sp::SmolyakPoly{T}) where T<:Real
+# In place update of the hessian
+function hessian!(sp::SmolyakPoly{T}) where T<:Real
 	fill!(sp.hessian, zero(T))
 	@inbounds for d_i in 1:sp.sb.sk.D, d_j in d_i:sp.sb.sk.D
 		for n in sp.hessidx[[d_i,d_j]]
@@ -182,56 +167,105 @@ function makeHessian!(sp::SmolyakPoly{T}) where T<:Real
 	end
 end
 
-# Update Smolyak Polynomial : new coef new x
-function makeSmolyakPoly!(θ::Vector{T}, sp::SmolyakPoly{T}, x::Vector{T}; NumDeriv::Int64=0) where T<:Real
-	update_coef!(sp, θ)
-	makeSmolyakBasis!(sp.sb, x; NumDeriv=NumDeriv)
+# Update Smolyak Polynomial at a new state vector
+function SmolyakPoly!( x::Vector{T}, sp::SmolyakPoly{T}; NumDeriv::Int64=0) where T<:Real
+	SmolyakBasis!(x, sp.sb; NumDeriv=NumDeriv)
 	if NumDeriv==0
-		makeValue!(sp)
+		value!(sp)
 	elseif NumDeriv==1
-		makeValue!(sp)
-		makeGradient!(sp)
+		value!(sp)
+		gradient!(sp)
 	elseif NumDeriv==2
-		makeValue!(sp)
-		makeGradient!(sp)
-		makeHessian!(sp)
-	else 
-		throw("Maximum number of hand coded derivatives is 2. Consider ForwardDiff for more")
-	end
-end
-
-# Update Smolyak Polynomial : new coef same x
-function makeSmolyakPoly!(θ::Vector{T}, sp::SmolyakPoly{T}; NumDeriv::Int64=0) where T<:Real
-	update_coef!(sp, θ)
-	makeSmolyakBasis!(sp.sb; NumDeriv=NumDeriv)
-	if NumDeriv==0
-		makeValue!(sp)
-	elseif NumDeriv==1
-		makeValue!(sp)
-		makeGradient!(sp)
-	elseif NumDeriv==2
-		makeValue!(sp)
-		makeGradient!(sp)
-		makeHessian!(sp)
+		value!(sp)
+		gradient!(sp)
+		hessian!(sp)
 	else 
 		throw("Maximum number of hand coded derivatives is 2. Consider ForwardDiff for more")
 	end
 end
 
 
-# Update Smolyak Polynomial : same coef, new x
-function makeSmolyakPoly!(sp::SmolyakPoly{T}, x::Vector{T}; NumDeriv::Int64=0) where T<:Real
-	makeSmolyakBasis!(sp.sb, x; NumDeriv=NumDeriv)
+# -------------------------- Extraction functions ---------------------------- #
+
+# State Vector
+state( x::Vector{T}, sp::SmolyakPoly{T}) where T<:Real  = deepcopy(sp.sb.state)
+
+# State Vector
+coef( x::Vector{T}, sp::SmolyakPoly{T}) where T<:Real  = deepcopy(sp.coef)
+
+# Value of Smolyak Polynomial at state vector x
+value(sp::SmolyakPoly{T}) where T<:Real = dot(sp.sb.BF, sp.coef)
+
+# Value of Smolyak Polynomial at new state vector x
+function value(x::Vector{T}, sp::SmolyakPoly{T}) where T<:Real
+	SmolyakPoly!(x, sp; NumDeriv=0)
+	return dot(sp.sb.BF, sp.coef)
+end
+
+# Value of Smolyak Polynomial at vector of new state vectors xx = [x_1; x_2, ... x_N]
+value(xx::VV{T}, sp::SmolyakPoly{T}) where T<:Real = [value(x_n, sp) for x_n in xx]
+
+# Derivative wrt state variable d_i
+function dWdx(sp::SmolyakPoly{T}, d_i::Int64) where T<:Real
+	dWdx = zero(T)
+	for n in sp.gradidx[d_i]
+		dWdx += sp.sb.jacobian[n][d_i]*sp.coef[n]
+	end
+	dWdx
+end
+
+# Derivative wrt state variable d_i new x
+function dWdx(x::Vector{T}, sp::SmolyakPoly{T}, d_i::Int64) where T<:Real
+	SmolyakBasis!(x, sp.sb; NumDeriv=1)
+	return dWdx(sp, d_i)
+end
+dWdx(xx::VV{T}, sp::SmolyakPoly{T}, d_i::Int64) where T<:Real = [dWdx(x_n, sp, d_i) for x_n in xx]
+
+# Get gradient
+gradient(sp::SmolyakPoly{T}) where T<:Real = deepcopy(sp.gradient)
+
+# Gradient at new x
+function gradient(x::Vector{T}, sp::SmolyakPoly{T}) where T<:Real
+	SmolyakPoly!(x, sp; NumDeriv=1)
+	return gradient(sp)
+end
+gradient(xx::VV{T}, sp::SmolyakPoly{T}) where T<:Real = [gradient(x_n, sp) for x_n in xx]
+	
+# Cross-derivatives wrt state variable d_i, d_j
+function d2Wdx2(sp::SmolyakPoly{T}, d_i::Int64, d_j::Int64) where T<:Real
+	D2W = zero(T)
+	for n in sp.hessidx[[d_i,d_j]]
+		D2W += sp.sb.hessian[n][d_i,d_j]*sp.coef[n]
+	end
+	D2W
+end
+
+# Cross-derivatives wrt state variable d_i, d_j at a new x
+function d2Wdx2(x::Vector{T}, sp::SmolyakPoly{T}, d_i::Int64, d_j::Int64) where T<:Real
+	SmolyakBasis!(x, sp.sb; NumDeriv=2)
+	return  d2Wdx2(sp, d_i, d_j)
+
+end
+d2Wdx2(xx::VV{T}, sp::SmolyakPoly{T}, d_i::Int64, d_j::Int64) where T<:Real = [d2Wdx2(x_n, sp, d_i, d_j) for x_n in xx]
+
+# Hessian at new x
+function hessian(x::Vector{T}, sp::SmolyakPoly{T}) where T<:Real
+	SmolyakPoly!(x, sp; NumDeriv=2)
+	return  deepcopy(sp.hessian)
+end
+hessian(xx::VV{T}, sp::SmolyakPoly{T}) where T<:Real = [hessian( x_n, sp) for x_n in xx]
+
+# Extract information on basis function at x
+function SPoutput(x::Vector{T}, sp::SmolyakPoly{T}; NumDeriv::Int64=0) where T<:Real
+	SmolyakPoly!(x, sp; NumDeriv=NumDeriv)
 	if NumDeriv==0
-		makeValue!(sp)
-	elseif NumDeriv==1
-		makeValue!(sp)
-		makeGradient!(sp)
-	elseif NumDeriv==2
-		makeValue!(sp)
-		makeGradient!(sp)
-		makeHessian!(sp)
+		return deepcopy(sp.value)
+	elseif NumDeriv==1 
+		return deepcopy(tuple(sp.value, sp.gradient))
+	elseif NumDeriv==2 
+		return deepcopy(tuple(sp.value, sp.gradient, sp.hessian))
 	else 
-		throw("Maximum number of hand coded derivatives is 2. Consider ForwardDiff for more")
+		throw("Number of Derivative <= 2")
 	end
 end
+SPoutput(xx::VV{T}, sp::SmolyakPoly{T}; NumDeriv::Int64=0) where T<:Real = [SPoutput(x_n, sp; NumDeriv=NumDeriv) for x_n in xx]

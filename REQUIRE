@@ -1,2 +1,5 @@
-julia 0.5
+julia 0.7
+LinearAlgerbra
+Combinatorics
 FactCheck
+Base.Cartesian

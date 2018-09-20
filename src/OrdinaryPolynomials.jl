@@ -69,7 +69,7 @@ OrdinaryPoly(x::Vector{T}, N::Vector{Int64}, xbnds::VV{T}, zbnds::VV{T}, D::Int6
 # ******************** #
 
 # Use Recursive Definitiions - consistent method with other polynomial types i am defining
-function makeBF!(op::OrdinaryPoly; NumDeriv::Int=0)
+function BasisFunctions!(op::OrdinaryPoly; NumDeriv::Int=0)
 	if op.xbnds==[[-Inf,Inf] for d in 1:op.D]
 		copyto!(op.z, op.x)
 	else

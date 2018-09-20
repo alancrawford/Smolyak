@@ -19,6 +19,8 @@ struct SmolyakBasis{T<:Real}
 	hessian 	:: VM{T}					# Hessian of basis funs wrt x
 end
 
+# --------------------- Constructor functions -------------------------- #
+
 # Create SmolyakBasis having defined bounds of x & z in Smolyak Kernel
 function SmolyakBasis(x::Vector{T},  ubf_type::Symbol, sk::SmolyakKernel; 
 							NumDeriv::Int64=2, NumDerivArgs::Int64=sk.D, DefaultDomain::Bool=true) where T<:Real
@@ -114,16 +116,13 @@ end
 getOrder(sk::SmolyakKernel) = getOrder(sk.BasisIdx, sk.D)
 
 
-# -------- New state to evaluate Smolyak Interpolant f(D,mu) where sb.use ------
+# --------------------- Updating functions -------------------------- #
 
 # New state vector -> applicable when sb.x is a vector
-
-new_state!(sb::SmolyakBasis,x::Vector{Float64}) = copyto!(sb.state, x)
-
-# ----------- BF & derivaitves ----------- # 
+state!(x::Vector{T}, sb::SmolyakBasis{T}) where T<:Real = copyto!(sb.state, x)
 
 # Construct Smolyak Basis Functions
-function makeBF!(sb::SmolyakBasis)
+function BasisFunctions!(sb::SmolyakBasis)
 	fill!(sb.BF, one(eltype(sb.ubf.x)))
 	for (bf_num, bfi) in enumerate(sb.sk.BasisIdx), (d, nm1) in enumerate(bfi)
 		sb.BF[bf_num] *= sb.ubf.BF[d][nm1+1]
@@ -131,7 +130,7 @@ function makeBF!(sb::SmolyakBasis)
 end
 
 # Construct jacobian of Smolyak Basis Functions
-function makeJacobian!(sb::SmolyakBasis)
+function jacobian!(sb::SmolyakBasis)
 	[fill!(sb.jacobian[n], one(eltype(sb.ubf.x))) for n in eachindex(sb.jacobian)]
 	# di indexed variable that derivate is wrt , dk are the other variables
 	for (bf_num, bfi) in enumerate(sb.sk.BasisIdx), (di, ni_m1) in enumerate(bfi), (dk, nk_m1) in enumerate(bfi)
@@ -144,7 +143,7 @@ function makeJacobian!(sb::SmolyakBasis)
 end
 
 # Make the Hessian
-function makeHessian!(sb::SmolyakBasis)
+function hessian!(sb::SmolyakBasis)
 	[fill!(sb.hessian[n], one(eltype(sb.ubf.x))) for n in eachindex(sb.BF)]
 	# di and dj index variable that 2nd derivate is wrt , dk are the other variables
 	for (bf_num, bfi) in enumerate(sb.sk.BasisIdx), (di, ni_m1) in enumerate(bfi), (dj, nj_m1) in enumerate(bfi), (dk, nk_m1) in enumerate(bfi)
@@ -165,55 +164,80 @@ function makeHessian!(sb::SmolyakBasis)
 end
 
 # Smolyak Basis at existing x
-function makeSmolyakBasis!(sb::SmolyakBasis; NumDeriv::Int64=0) where T<:Real
+function SmolyakBasis!(sb::SmolyakBasis; NumDeriv::Int64=0) where T<:Real
 	if NumDeriv==0
-		makeBF!(sb.ubf; NumDeriv=NumDeriv)
-		makeBF!(sb)
+		BasisFunctions!(sb.ubf; NumDeriv=NumDeriv)
+		BasisFunctions!(sb)
 	elseif NumDeriv==1
-		makeBF!(sb.ubf; NumDeriv=NumDeriv)
-		makeBF!(sb)
-		makeJacobian!(sb)
+		BasisFunctions!(sb.ubf; NumDeriv=NumDeriv)
+		BasisFunctions!(sb)
+		jacobian!(sb)
 	elseif NumDeriv==2
-		makeBF!(sb.ubf; NumDeriv=NumDeriv)
-		makeBF!(sb)
-		makeJacobian!(sb)
-		makeHessian!(sb)
+		BasisFunctions!(sb.ubf; NumDeriv=NumDeriv)
+		BasisFunctions!(sb)
+		jacobian!(sb)
+		hessian!(sb)
 	else
 		throw("Max number hand coded deriv = 2. For more consider ForwardDiff")
 	end
 end
 
 # Smolyak Basis at new x
-function makeSmolyakBasis!(sb::SmolyakBasis, x::Vector{T}; NumDeriv::Int64=0) where T<:Real
+function SmolyakBasis!(x::Vector{T}, sb::SmolyakBasis{T}; NumDeriv::Int64=0) where T<:Real
 	if NumDeriv==0
-		new_state!(sb, x)
-		makeBF!(sb.ubf; NumDeriv=NumDeriv)
-		makeBF!(sb)
+		state!(x, sb)
+		BasisFunctions!(sb.ubf; NumDeriv=NumDeriv)
+		BasisFunctions!(sb)
 	elseif NumDeriv==1
-		new_state!(sb, x)
-		makeBF!(sb.ubf; NumDeriv=NumDeriv)
-		makeBF!(sb)
-		makeJacobian!(sb)
+		state!(x, sb)
+		BasisFunctions!(sb.ubf; NumDeriv=NumDeriv)
+		BasisFunctions!(sb)
+		jacobian!(sb)
 	elseif NumDeriv==2
-		new_state!(sb, x)
-		makeBF!(sb.ubf; NumDeriv=NumDeriv)
-		makeBF!(sb)
-		makeJacobian!(sb)
-		makeHessian!(sb)
+		state!(x, sb)
+		BasisFunctions!(sb.ubf; NumDeriv=NumDeriv)
+		BasisFunctions!(sb)
+		jacobian!(sb)
+		hessian!(sb)
 	else
 		throw("Max number hand coded deriv = 2. For more consider ForwardDiff")
 	end
 end
 
-#=
-function show(io::IO, sb::SmolyakBasis)
-	msg = "\n\tCreated Smolyak Basis:\n"
-	msg *= "\t- Dim: $(sb.sk.D), mu: $(sb.sk.mu)\n"
-	msg *= "\t- NumPts: $(sb.sk.N)\n"
-	msg *= "\t- Number of Basis Functions: $(length(sb.BF))\n"
-	if ==(sb.NumDeriv,0) msg *= "\t- No Derivative supplied. Do not call dBFdx or d2BFdx2.\n" end
-	if ==(sb.NumDeriv,1) msg *= "\t- with dBFdx up to first $(sb.NumDerivArgs) arguments. Do not call d2BFdx2.\n" end
-	if ==(sb.NumDeriv,2) msg *= "\t- with dBFdx & d2BFdx2 up to first $(sb.NumDerivArgs) arguments.\n" end
-	print(io, msg)
+# ---------------------- Extraction functions ----------------------- # 
+
+state(sb::SmolyakBasis{T}) where T<:Real = deepcopy(sb.state)
+
+function BasisFunctions(x::Vector{T}, sb::SmolyakBasis{T}) where T<:Real
+	SmolyakBasis!(x, sb; NumDeriv=0)
+	return  deepcopy(sb.BF)
 end
-=#
+BasisFunctions( xx::VV{T}, sb::SmolyakBasis{T}) where T<:Real = [BasisFunctions(x_n, sb) for x_n in xx]
+
+function jacobian(x::Vector{T}, sb::SmolyakBasis{T}) where T<:Real
+	SmolyakBasis!(x, sb; NumDeriv=1)
+	return  deepcopy(sb.jacobian)
+end
+jacobian(xx::VV{T}, sb::SmolyakBasis{T}) where T<:Real = [jacobian(x_n, sb) for x_n in xx]
+
+function hessian(x::Vector{T}, sb::SmolyakBasis{T}) where T<:Real
+	SmolyakBasis!(x, sb; NumDeriv=2)
+	return  deepcopy(sb.hessian)
+end
+hessian(xx::VV{T}, sb::SmolyakBasis{T}) where T<:Real = [hessian(x_n, sb) for x_n in xx]
+
+# Extract information on basis function at x
+function SBoutput(x::Vector{T}, sb::SmolyakBasis{T}; NumDeriv::Int64=0) where T<:Real
+	SmolyakBasis!(x, sb; NumDeriv=NumDeriv)
+	if NumDeriv==0
+		return deepcopy(sb.BF)
+	elseif NumDeriv==1 
+		return deepcopy(tuple(sb.BF,sb.jacobian))
+	elseif NumDeriv==2 
+		return deepcopy(tuple(sb.BF,sb.jacobian, sb.hessian))
+	else 
+		throw("Number of Derivative <= 2")
+	end
+end
+SBoutput(xx::VV{T}, sb::SmolyakBasis{T}; NumDeriv::Int64=0) where T<:Real = [SBoutput(x_n, sb; NumDeriv=NumDeriv) for x_n in xx]
+

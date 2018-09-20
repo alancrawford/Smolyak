@@ -74,7 +74,7 @@ dTn(z::T,Tnm1::T,dTnm1::T,dTnm2::T) where {T} = 2*Tnm1 + 2*z*dTnm1 - dTnm2
 d2Tn(z::T,dTnm1::T,d2Tnm1::T,d2Tnm2::T) where {T} = 4*dTnm1 + 2*z*d2Tnm1 - d2Tnm2
 
 # Use Recursive Definitiions - consistent method with other polynomial types i am defining
-function makeBF!(cheb::ChebyshevPoly; NumDeriv::Int=0)
+function BasisFunctions!(cheb::ChebyshevPoly; NumDeriv::Int=0)
 	copyto!(cheb.z, x2z(cheb))
 	if NumDeriv==0
 		for (d,z) in enumerate(cheb.z)

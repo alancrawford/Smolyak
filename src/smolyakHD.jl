@@ -1,7 +1,7 @@
 # High-Dim Smolyak Utilities
 
 # This is the GridIndex to create Binds
-function makeHDSmolIdx(mu::Vector{Int64})
+function HDSmolIdx(mu::Vector{Int64})
 	mu_max = maximum(mu)
 	D = length(mu)
 	parts = Vector{Int64}[]
@@ -56,7 +56,7 @@ function makeHDSmolIdx(mu::Vector{Int64})
 	return [GridIdx[i,:] for i in 1:size(GridIdx,1)]
 end
 
-@generated function makeNumGridPts(GridIdx::VV{Int64},mu::NTuple{N,Int64}) where N
+@generated function NumGridPts(GridIdx::VV{Int64},mu::NTuple{N,Int64}) where N
 	quote
 		max_mu=0
 		for i in 1:$N

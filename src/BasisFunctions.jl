@@ -35,22 +35,14 @@ dzdx(bf::T, d::Int64) where {T<:UnivariateBasisFunction} = dlt(bf.zbnds[d], bf.x
 #= Functions switching between z in [-1,1] and x in [lb,ub] =#
 #= ******************************************************** =#
 
-# Smolyak Grids
-function x2z!(sg::SmolyakGrid) 
-	for (n,x) in enumerate(sg.x)
-		copyto!( 
-			sg.z[n], lineartransform.(x, view(sg.xbnds,:,1), view(sg.xbnds,:,2), 
-				view(sg.zbnds,:,1), view(sg.zbnds,:,2))
-		)
-	end
-end
+# Vectors of points from arguments of polynomials / grid points to x-coodinates
+z2x(z::Vector{T}, sk::SmolyakKernel{T}) where T<:Real = map(z_n->lineartransform.(z_n, sk.zbnds, sk.xbnds), z)
+z2x(zz::VV{T}, sk::SmolyakKernel{T}) where T<:Real = map(z_n->lineartransform.(z_n, sk.zbnds, sk.xbnds), zz)
+z2x(Z::Matrix{T}, sk::SmolyakKernel{T}) where T<:Real = z2x([z[n] for n in 1:size(Z,1)], sk)
+z2x(sg::SmolyakGrid{T}) where T<:Real = z2x(sg.grid, sg.sk)
 
-function z2x!(sg::SmolyakGrid) 
-	for (n,z) in enumerate(sg.z)
-		copyto!( 
-			sg.x[n],lineartransform.(z, view(sg.zbnds,:,1), view(sg.zbnds,:,2), 
-					view(sg.xbnds,:,1), view(sg.xbnds,:,2))
-		)
-	end
-end
 
+# x-coordinates to VV of z-coordinates
+x2z(x::Vector{T}, sk::SmolyakKernel{T}) where T<:Real = map(x_n->lineartransform.(x_n, sk.xbnds, sk.zbnds), x)
+x2z(xx::VV{T}, sk::SmolyakKernel{T}) where T<:Real = map(x_n->lineartransform.(x_n, sk.xbnds, sk.zbnds), xx)
+x2z(X::Matrix{T}, sk::SmolyakKernel{T}) where T<:Real = x2z([x[n] for n in 1:size(X,1)], sk)

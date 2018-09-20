@@ -12,12 +12,14 @@ struct SmolyakKernel{T} <: SmolyakKernelType
 	BasisIdx	::  VV{Int64}				# Input to construct Basis Funs for set of grid points -> Will depend on mu.
 end
 
+# --------------------- Constructor functions -------------------------- #
+
 function SmolyakKernel(D::Int64, mu_level::T; HD::Bool=false) where T<:Real
 	
 	muvec =  mu_level*ones(typeof(mu_level),D)
 	if HD 
-		GridIdx = makeHDSmolIdx(muvec)
-		NGP = makeNumGridPts(GridIdx,(muvec...,))
+		GridIdx = HDSmolIdx(muvec)
+		NGP = NumGridPts(GridIdx,(muvec...,))
 	else
 		NGP, GridIdx = SmolIdx(tuple(muvec...,))
 	end
@@ -25,7 +27,7 @@ function SmolyakKernel(D::Int64, mu_level::T; HD::Bool=false) where T<:Real
 	xbnds = [[-1.0,1.0] for d in 1:D]
 	zbnds = [[-1.0,1.0] for d in 1:D]
 	BasisIdx = Vector{Int64}[Array{Int64}(undef,D) for r in 1:NGP]	
-	makeBasisIdx!(BasisIdx,GridIdx,tuple(muvec...,)) # Basis Function Indices
+	BasisIdx!(BasisIdx,GridIdx,tuple(muvec...,)) # Basis Function Indices
 
 	return SmolyakKernel(D, muvec, NGP, xbnds, zbnds, GridIdx , BasisIdx )
 end
@@ -35,8 +37,8 @@ function SmolyakKernel(mu::Vector{T}; HD::Bool=false) where T<:Real
 	# Setup
 	D = length(mu)
 	if HD 
-		GridIdx = makeHDSmolIdx(mu)
-		NGP = makeNumGridPts(GridIdx,(mu...,))
+		GridIdx = HDSmolIdx(mu)
+		NGP = NumGridPts(GridIdx,(mu...,))
 	else
 		NGP, GridIdx = SmolIdx(tuple(mu...,))
 	end
@@ -47,7 +49,7 @@ function SmolyakKernel(mu::Vector{T}; HD::Bool=false) where T<:Real
 	BasisIdx = Vector{Int64}[Array{Int64}(undef,D) for r in 1:NGP]
 
 	# Make Indices
-	makeBasisIdx!(BasisIdx,GridIdx,tuple(mu...,)) # Basis Function Indices
+	BasisIdx!(BasisIdx,GridIdx,tuple(mu...,)) # Basis Function Indices
 
 	return SmolyakKernel(D, mu, NGP, xbnds, zbnds, GridIdx , BasisIdx )
 end
@@ -57,8 +59,8 @@ function SmolyakKernel(D::Int64, mu_level::T, xbnds::VV{S}; HD::Bool=false) wher
 	muvec = mu_level*ones(typeof(mu_level),D)
 	
 	if HD 
-		GridIdx = makeHDSmolIdx(muvec)
-		NGP = makeNumGridPts(GridIdx,(muvec...,))
+		GridIdx = HDSmolIdx(muvec)
+		NGP = NumGridPts(GridIdx,(muvec...,))
 	else
 		NGP, GridIdx = SmolIdx(tuple(muvec...,))
 	end
@@ -68,7 +70,7 @@ function SmolyakKernel(D::Int64, mu_level::T, xbnds::VV{S}; HD::Bool=false) wher
 	BasisIdx = Vector{Int64}[Array{Int64}(undef,D) for r in 1:NGP]
 
 	# Make Indices
-	makeBasisIdx!(BasisIdx,GridIdx,tuple(muvec...,)) # Basis Function Indices
+	BasisIdx!(BasisIdx,GridIdx,tuple(muvec...,)) # Basis Function Indices
 
 	return SmolyakKernel(D, muvec, NGP, xbnds, zbnds, GridIdx , BasisIdx )
 end
@@ -78,8 +80,8 @@ function SmolyakKernel(mu::Vector{T}, xbnds::VV{S}; HD::Bool=false) where T<:Rea
 	# Setup
 	D = length(mu)
 	if HD 
-		GridIdx = makeHDSmolIdx(mu)
-		NGP = makeNumGridPts(GridIdx,(mu...,))
+		GridIdx = HDSmolIdx(mu)
+		NGP = NumGridPts(GridIdx,(mu...,))
 	else
 		NGP, GridIdx = SmolIdx(tuple(mu...,))
 	end
@@ -89,7 +91,7 @@ function SmolyakKernel(mu::Vector{T}, xbnds::VV{S}; HD::Bool=false) where T<:Rea
 	BasisIdx = Vector{Int64}[Array{Int64}(undef,D) for r in 1:NGP]
 
 	# Make Indices
-	makeBasisIdx!(BasisIdx,GridIdx,tuple(mu...,)) # Basis Function Indices
+	BasisIdx!(BasisIdx,GridIdx,tuple(mu...,)) # Basis Function Indices
 
 	return SmolyakKernel(D, mu, NGP, xbnds, zbnds, GridIdx , BasisIdx )
 end
@@ -99,8 +101,8 @@ function SmolyakKernel(D::Int64, mu_level::T,  xbnds::VV{S}, zbnds::VV{S}; HD::B
 	muvec = mu_level*ones(T,D)
 	
 	if HD 
-		GridIdx = makeHDSmolIdx(muvec)
-		NGP = makeNumGridPts(GridIdx,(muvec...,))
+		GridIdx = HDSmolIdx(muvec)
+		NGP = NumGridPts(GridIdx,(muvec...,))
 	else
 		NGP, GridIdx = SmolIdx(tuple(muvec...,))
 	end
@@ -109,7 +111,7 @@ function SmolyakKernel(D::Int64, mu_level::T,  xbnds::VV{S}, zbnds::VV{S}; HD::B
 	BasisIdx = Vector{Int64}[Array{Int64}(undef,D) for r in 1:NGP]
 
 	# Make Indices
-	makeBasisIdx!(BasisIdx,GridIdx,tuple(muvec...,)) # Basis Function Indices
+	BasisIdx!(BasisIdx,GridIdx,tuple(muvec...,)) # Basis Function Indices
 
 	return SmolyakKernel(D, muvec, NGP, xbnds, zbnds, GridIdx , BasisIdx )
 end
@@ -119,8 +121,8 @@ function SmolyakKernel(mu::Vector{T}, xbnds::VV{S}, zbnds::VV{S}; HD::Bool=false
 	# Setup
 	D = length(mu)
 	if HD 
-		GridIdx = makeHDSmolIdx(mu)
-		NGP = makeNumGridPts(GridIdx,(mu...,))
+		GridIdx = HDSmolIdx(mu)
+		NGP = NumGridPts(GridIdx,(mu...,))
 	else
 		NGP, GridIdx = SmolIdx(tuple(mu...,))
 	end
@@ -129,7 +131,7 @@ function SmolyakKernel(mu::Vector{T}, xbnds::VV{S}, zbnds::VV{S}; HD::Bool=false
 	BasisIdx = Vector{Int64}[Array{Int64}(undef,D) for r in 1:NGP]
 
 	# Make Indices
-	makeBasisIdx!(BasisIdx,GridIdx,tuple(mu...,)) # Basis Function Indices
+	BasisIdx!(BasisIdx,GridIdx,tuple(mu...,)) # Basis Function Indices
 
 	return SmolyakKernel(D, mu, NGP, xbnds, zbnds, GridIdx , BasisIdx )
 end
@@ -210,7 +212,7 @@ end
 end
 
 #= ******************************************* =#
-#= Create Basis Funs Indices SmolyakGrid(d,mu) =#
+#= Create Basis Funs Indices SmolyakGrid	 =#
 #= ******************************************* =#
 
 # Disjoint sets that define indexes for creation of Basis Indices
@@ -226,8 +228,10 @@ function A_pidx(ibar::Int64)
 	return A
 end
 
+# --------------------- Updating functions -------------------------- #
+
 # Make Basis Function Indexes
-@generated function makeBasisIdx!(Binds::VV{Int64},GridIdx::VV{Int64},mu::NTuple{N,T}) where N where T<:Real
+@generated function BasisIdx!(Binds::VV{Int64},GridIdx::VV{Int64},mu::NTuple{N,T}) where N where T<:Real
 	quote
 		max_mu=0
 		for i in 1:$N

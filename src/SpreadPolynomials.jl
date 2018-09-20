@@ -78,7 +78,7 @@ d2Sn(s::T,dSnm1::T,d2Snm1::T,d2Snm2::T) where {T} = 2(1-2s)*d2Snm1 - 8dSnm1 - d2
 the spread polynomial definiton if `constant==true`. Benefit of this is 
 tensor products in Smolyak polynomial do not all go zero as z→0, but those
 that depend on z do go to zero. =#
-function makeBF!(spd::SpreadPoly; NumDeriv::Int=0, constant::Bool=true)
+function BasisFunctions!(spd::SpreadPoly; NumDeriv::Int=0, constant::Bool=true)
 	copyto!(spd.z, x2z(spd))
 	if NumDeriv==0
 		for (d,z) in enumerate(spd.z)
@@ -122,7 +122,7 @@ function makeBF!(spd::SpreadPoly; NumDeriv::Int=0, constant::Bool=true)
 end
 #=
 # Use Recursive Definitiions - shifting order back so S[0] = S[-1].
-function makeShiftedBF!(spd::SpreadPoly; NumDeriv::Int=0)
+function ShiftedBasisFunctions!(spd::SpreadPoly; NumDeriv::Int=0)
 	copyto!(spd.z, x2z(spd))
 	if NumDeriv==0
 		for (d,z) in enumerate(spd.z)
