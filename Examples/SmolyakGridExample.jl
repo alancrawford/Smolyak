@@ -17,7 +17,7 @@ for level in 1:4
 	grid = VVtoMatrix(sg.grid)
 
 	push!(plotbin, scatter(view(grid,:,1), view(grid,:, 2), 
-							title="μ=$(level)", 
+							title="µ=$(level)", 
 							legend=false, 
 							)
 		)

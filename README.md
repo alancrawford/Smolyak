@@ -207,7 +207,7 @@ W = truefun.(xgrid(sg));
 θ = BF\W
 ```
 
-## Interpolation
+## 5. Interpolation
 
 Next the function above is interpolated on its domain.
 
