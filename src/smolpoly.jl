@@ -188,7 +188,7 @@ end
 # -------------------------- Extraction functions ---------------------------- #
 
 # State Vector
-state( x::Vector{T}, sp::SmolyakPoly{T}) where T<:Real  = deepcopy(sp.sb.state)
+state( sp::SmolyakPoly{T}) where T<:Real  = deepcopy(sp.sb.state)
 
 # State Vector
 coef( x::Vector{T}, sp::SmolyakPoly{T}) where T<:Real  = deepcopy(sp.coef)

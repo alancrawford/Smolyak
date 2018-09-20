@@ -177,7 +177,6 @@ Suppose we have a one dimensional function to approximate
 
 ```
 truefun(x) = 1.1 + x[1]^3
-xbnds = [[-2.0, 10.0]
 ```
 
 Suppose a Smolyak Polynomial with spread polynomial basis functions and accuracy level 3 is used to approximate this function on x = [-2.0, 10.0].
