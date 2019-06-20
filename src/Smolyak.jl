@@ -1,4 +1,4 @@
-VERSION < v"0.7.0-beta2.199" && __precompile__()
+#dev LInearVERSION < v"0.7.0-beta2.199" && __precompile__()
 
 """
 ## Description
@@ -9,7 +9,7 @@ efficiently following the methodology outlined in Judd, Maliar, Maliar, Valero (
 
 It supports construction of Smolyak Polynomials with Ordinary, Chebyshev and Spread Polynomial basis functions.
 
-The code is designed for Julia version: 0.7.
+The code is designed for Julia version: 1.0.
 
 """
 module Smolyak
@@ -17,6 +17,8 @@ module Smolyak
 using Base.Cartesian
 using LinearAlgebra
 using Combinatorics
+
+using SparseArrays: findnz
 
 # Type aliases 
 VV{T} = Vector{Vector{T}}
