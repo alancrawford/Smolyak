@@ -1,277 +1,268 @@
 
+using Smolyak
+using Test
 
+# make a linear function to predict
+global slopes = rand(4)
 
-module SmolyakTest
-	using Smolyak, FactCheck
+for basis_fun_type in [:chebyshev, :spread], mu_ in 1:4
+	@testset "testing interpolation on grid with mu=$mu_ with basis fun = $(basis_fun_type)" begin
 
-	for basis_fun_type in [:chebyshev, :spread], mu_ in 1:4
+		println("1D") 
 
-		facts("testing interpolation on grid with mu=$mu_ with basis fun = $(basis_fun_type)") do
+		truefun1(x) = 1.1 + x[1]^3
 
-			context("one dimension") do
+		mu = [mu_]
+		xbnds = [[-2., rand()] for i in 1:length(mu)]
 
-				truefun(x) = 1.1 + x[1]^3
+		# Smolyak Components
+		sk = SmolyakKernel(mu, xbnds)
+		sg = SmolyakGrid(sk)
+		sb = SmolyakBasis(basis_fun_type, sk; NumDeriv=0)
+		sp = SmolyakPoly(sb; NumDeriv=0)
 
-				mu = [mu_]
-				xbnds = [[-2., rand()] for i in 1:length(mu)]
+		# Get true values of function at grid points
+		W = truefun1.(xgrid(sg))
 
-				# Smolyak Components
-				sk = SmolyakKernel(mu, xbnds)
-				sg = SmolyakGrid(sk)
-				sb = SmolyakBasis(basis_fun_type, sk; NumDeriv=0)
-				sp = SmolyakPoly(sb; NumDeriv=0)
+		# Generate corresponding Smolyak Basis Functions
+		BF = VVtoMatrix(BasisFunctions(xgrid(sg), sb));
 
-				# Get true values of function at grid points
-				W = truefun.(xgrid(sg))
+		# Solve for the coefficients
+		θ = BF\W
 
-				# Generate corresponding Smolyak Basis Functions
-				BF = VVtoMatrix(BasisFunctions(xgrid(sg), sb));
+		# Update the coefficients
+		coef!(θ, sp)  # Update coefficient in Smolyak Polynomial
 
-				# Solve for the coefficients
-				θ = BF\W
+		# Evaluate Smolayk poly on Smolyak Grid
+		What = value(xgrid(sg) , sp)
 
-				# Update the coefficients
-				coef!(θ, sp)  # Update coefficient in Smolyak Polynomial
+		# Check maximum difference
+		@test maximum(abs, W-What) < 1e-12  
+	
+		println("2D") 
+		truefun2(x) = 1.1 + (x[1]-x[2]^2)^2 
 
-				# Evaluate Smolayk poly on Smolyak Grid
-				What = value(xgrid(sg) , sp)
+		mu = [mu_,mu_]
+		xbnds = [[-2., rand()] for i in 1:length(mu)]
 
-				# Check maximum difference
-				@fact maximum(abs, W-What) <1e-12 --> true 
+		# Smolyak Components
+		sk = SmolyakKernel(mu, xbnds)
+		sg = SmolyakGrid(sk)
+		sb = SmolyakBasis(basis_fun_type, sk; NumDeriv=0)
+		sp = SmolyakPoly(sb; NumDeriv=0)
 
-			end
+		# Get true values of function at grid points
+		W = truefun2.(xgrid(sg))
 
-			context("2D") do
-				truefun(x) = 1.1 + (x[1]-x[2]^2)^2 
+		# Generate corresponding Smolyak Basis Functions
+		BF = VVtoMatrix(BasisFunctions(xgrid(sg), sb));
 
-				mu = [mu_,mu_]
-				xbnds = [[-2., rand()] for i in 1:length(mu)]
+		# Solve for the coefficients
+		θ = BF\W
 
-				# Smolyak Components
-				sk = SmolyakKernel(mu, xbnds)
-				sg = SmolyakGrid(sk)
-				sb = SmolyakBasis(basis_fun_type, sk; NumDeriv=0)
-				sp = SmolyakPoly(sb; NumDeriv=0)
+		# Update the coefficients
+		coef!(θ, sp)  # Update coefficient in Smolyak Polynomial
 
-				# Get true values of function at grid points
-				W = truefun.(xgrid(sg))
+		# Evaluate Smolayk poly on Smolyak Grid
+		What = value(xgrid(sg) , sp)
 
-				# Generate corresponding Smolyak Basis Functions
-				BF = VVtoMatrix(BasisFunctions(xgrid(sg), sb));
+		# Check maximum difference
+		@test maximum(abs, W-What) <1e-12  
 
-				# Solve for the coefficients
-				θ = BF\W
+		println("3D") 
+		truefun3(x) = 1.1 + (x[1]-x[2]^2)^2 + x[3]^2
 
-				# Update the coefficients
-				coef!(θ, sp)  # Update coefficient in Smolyak Polynomial
+		mu = [mu_,mu_,mu_]
+		xbnds = [[-2., rand()] for i in 1:length(mu)]
 
-				# Evaluate Smolayk poly on Smolyak Grid
-				What = value(xgrid(sg) , sp)
+		# Smolyak Components
+		sk = SmolyakKernel(mu, xbnds)
+		sg = SmolyakGrid(sk)
+		sb = SmolyakBasis(basis_fun_type, sk; NumDeriv=0)
+		sp = SmolyakPoly(sb; NumDeriv=0)
 
-				# Check maximum difference
-				@fact maximum(abs, W-What) <1e-12 --> true 
+		# Get true values of function at grid points
+		W = truefun3.(xgrid(sg))
 
-			end
+		# Generate corresponding Smolyak Basis Functions
+		BF = VVtoMatrix(BasisFunctions(xgrid(sg), sb));
 
-			context("3D") do
-				truefun(x) = 1.1 + (x[1]-x[2]^2)^2 + x[3]^2
+		# Solve for the coefficients
+		θ = BF\W
 
-				mu = [mu_,mu_,mu_]
-				xbnds = [[-2., rand()] for i in 1:length(mu)]
+		# Update the coefficients
+		coef!(θ, sp)  # Update coefficient in Smolyak Polynomial
 
-				# Smolyak Components
-				sk = SmolyakKernel(mu, xbnds)
-				sg = SmolyakGrid(sk)
-				sb = SmolyakBasis(basis_fun_type, sk; NumDeriv=0)
-				sp = SmolyakPoly(sb; NumDeriv=0)
+		# Evaluate Smolayk poly on Smolyak Grid
+		What = value(xgrid(sg) , sp)
 
-				# Get true values of function at grid points
-				W = truefun.(xgrid(sg))
+		# Check maximum difference
+		@test maximum(abs, W-What) <1e-12
 
-				# Generate corresponding Smolyak Basis Functions
-				BF = VVtoMatrix(BasisFunctions(xgrid(sg), sb));
+		println("4D")
+		truefun4(x) = 1.1 + (x[1]-x[2]^2)^2 + x[3]^2 - (x[3]+x[4])^2
 
-				# Solve for the coefficients
-				θ = BF\W
+		mu = [mu_,mu_,mu_,mu_]
+		xbnds = [[-2., rand()] for i in 1:length(mu)]
 
-				# Update the coefficients
-				coef!(θ, sp)  # Update coefficient in Smolyak Polynomial
+		# Smolyak Components
+		sk = SmolyakKernel(mu, xbnds)
+		sg = SmolyakGrid(sk)
+		sb = SmolyakBasis(basis_fun_type, sk; NumDeriv=0)
+		sp = SmolyakPoly(sb; NumDeriv=0)
 
-				# Evaluate Smolayk poly on Smolyak Grid
-				What = value(xgrid(sg) , sp)
+		# Get true values of function at grid points
+		W = truefun4.(xgrid(sg))
 
-				# Check maximum difference
-				@fact maximum(abs, W-What) <1e-12 --> true 
-			end
+		# Generate corresponding Smolyak Basis Functions
+		BF = VVtoMatrix(BasisFunctions(xgrid(sg), sb));
 
-			context("4D") do
-				truefun(x) = 1.1 + (x[1]-x[2]^2)^2 + x[3]^2 - (x[3]+x[4])^2
+		# Solve for the coefficients
+		θ = BF\W
 
-				mu = [mu_,mu_,mu_,mu_]
-				xbnds = [[-2., rand()] for i in 1:length(mu)]
+		# Update the coefficients
+		coef!(θ, sp)  # Update coefficient in Smolyak Polynomial
 
-				# Smolyak Components
-				sk = SmolyakKernel(mu, xbnds)
-				sg = SmolyakGrid(sk)
-				sb = SmolyakBasis(basis_fun_type, sk; NumDeriv=0)
-				sp = SmolyakPoly(sb; NumDeriv=0)
+		# Evaluate Smolayk poly on Smolyak Grid
+		What = value(xgrid(sg) , sp)
 
-				# Get true values of function at grid points
-				W = truefun.(xgrid(sg))
+		# Check maximum difference
+		@test maximum(abs, W-What) <1e-12 
+	end
+end
+for basis_fun_type in [:chebyshev, :spread], mu_ in 1:4
 
-				# Generate corresponding Smolyak Basis Functions
-				BF = VVtoMatrix(BasisFunctions(xgrid(sg), sb));
+	@testset "testing interpolation off grid with mu=$(mu_)" begin
 
-				# Solve for the coefficients
-				θ = BF\W
+		# random point picker
+		rpoint(lb,ub) = (ub - lb)*rand() + lb
+		rpoint(bounds) = rpoint(bounds...)
 
-				# Update the coefficients
-				coef!(θ, sp)  # Update coefficient in Smolyak Polynomial
+		println("one dimension")
 
-				# Evaluate Smolayk poly on Smolyak Grid
-				What = value(xgrid(sg) , sp)
+		function truefun1(x)
+			return 1.1 + slopes[1]*x[1]
+		end 
 
-				# Check maximum difference
-				@fact maximum(abs, W-What) <1e-12 --> true 
-			end
+		mu = [mu_]
+		xbnds = [[-2., 12.] for i in 1:length(mu)]
+
+		# Smolyak Components
+		sk = SmolyakKernel(mu, xbnds)
+		sg = SmolyakGrid(sk)
+		sb = SmolyakBasis(basis_fun_type, sk; NumDeriv=0)
+		sp = SmolyakPoly(sb; NumDeriv=0)
+
+		# Get true values of function at grid points
+		W = truefun1.(xgrid(sg))
+
+		# Solve for the coefficients
+		BF = VVtoMatrix(BasisFunctions(xgrid(sg), sb));
+		θ = BF\W
+
+		# Update coefficient in Smolyak Polynomial
+		coef!(θ, sp)  
+
+		# make basis on random point
+		NumObs = 10
+		xx = [rpoint.(xbnds) for n in 1:NumObs]
+
+		What = value(xx , sp)
+
+		@test isapprox(What, truefun1.(xx), atol=1e-6)
+
+		println("2D")
+		function truefun2(x)
+			return 1.1 + slopes[1]*x[1] - slopes[2]*x[2]
 		end
-		
+		mu = [mu_,mu_]
+		xbnds = [[-2., 12.] for i in 1:length(mu)]
 
-		facts("testing interpolation off grid with mu=$mu_") do
+		# Smolyak Components
+		sk = SmolyakKernel(mu, xbnds)
+		sg = SmolyakGrid(sk)
+		sb = SmolyakBasis(basis_fun_type, sk; NumDeriv=0)
+		sp = SmolyakPoly(sb; NumDeriv=0)
 
-			# make a linear function to predict
-			slopes = rand(4)
+		# Solve for the coefficients
+		BF = VVtoMatrix(BasisFunctions(xgrid(sg), sb));
+		θ = BF\truefun2.(xgrid(sg))
 
-			# random point picker
-			rpoint(lb,ub) = (ub - lb)*rand() + lb
-			rpoint(bounds) = rpoint(bounds...)
+		# Update coefficient in Smolyak Polynomial
+		coef!(θ, sp)  
 
-			context("one dimension") do
+		# make basis on random point
+		NumObs = 10
+		xx = [rpoint.(xbnds) for n in 1:NumObs]
 
-				truefun(x) = 1.1 + slopes[1]*x[1]
+		What = value(xx , sp)
 
-				mu = [mu_]
-				xbnds = [[-2., 12.] for i in 1:length(mu)]
-				
-				# Smolyak Components
-				sk = SmolyakKernel(mu, xbnds)
-				sg = SmolyakGrid(sk)
-				sb = SmolyakBasis(basis_fun_type, sk; NumDeriv=0)
-				sp = SmolyakPoly(sb; NumDeriv=0)
+		@test isapprox(What, truefun2.(xx), atol=1e-6)	
 
-				# Get true values of function at grid points
-				W = truefun.(xgrid(sg))
+		println("3D") 
+		function truefun3(x)
+			return 1.1 + slopes[1]*x[1] - slopes[2]*x[2] + slopes[3]*x[3]
+		end
 
-				# Solve for the coefficients
-				BF = VVtoMatrix(BasisFunctions(xgrid(sg), sb));
-				θ = BF\W
+		mu = [mu_,mu_,mu_]
+		xbnds = [[-2., 12.] for i in 1:length(mu)]
 
-				# Update coefficient in Smolyak Polynomial
-				coef!(θ, sp)  
+		# Smolyak Components
+		sk = SmolyakKernel(mu, xbnds)
+		sg = SmolyakGrid(sk)
+		sb = SmolyakBasis(basis_fun_type, sk; NumDeriv=0)
+		sp = SmolyakPoly(sb; NumDeriv=0)
 
-				# make basis on random point
-				NumObs = 10
-				xx = [rpoint.(xbnds) for n in 1:NumObs]
+		# Solve for the coefficients
+		BF = VVtoMatrix(BasisFunctions(xgrid(sg), sb));
+		θ = BF\truefun3.(xgrid(sg))
 
-				What = value(xx , sp)
+		# Update coefficient in Smolyak Polynomial
+		coef!(θ, sp)  
 
-				@fact What --> roughly(truefun.(xx))
+		# make basis on random point
+		NumObs = 10
+		xx = [rpoint.(xbnds) for n in 1:NumObs]
 
+		What = value(xx , sp)
+
+		@test isapprox(What, truefun3.(xx), atol=1e-6)
+
+		println("4D")
+		function truefun4(x)
+			return  1.1 + slopes[1]*x[1] - slopes[2]*x[2] + slopes[3]*x[3] * slopes[4] * x[4]
+		end
+		mu = [mu_,mu_,mu_,mu_]
+		xbnds = [[-2., 12.] for i in 1:length(mu)]
+
+		# Smolyak Components
+		sk = SmolyakKernel(mu, xbnds)
+		sg = SmolyakGrid(sk)
+		sb = SmolyakBasis(basis_fun_type, sk; NumDeriv=0)
+		sp = SmolyakPoly(sb; NumDeriv=0)
+
+		# Solve for the coefficients
+		BF = VVtoMatrix(BasisFunctions(xgrid(sg), sb));
+		θ = BF\truefun4.(xgrid(sg))
+
+		# Update coefficient in Smolyak Polynomial
+		coef!(θ, sp)  
+
+		# make basis on random point
+		NumObs = 10
+		xx = [rpoint.(xbnds) for n in 1:NumObs]
+
+		What = value(xx , sp)
+
+		if mu_ == 1
+			println("approximation level mu=1 is too low in 4D with multiplicative component.")
+			for i in 1:NumObs
+				#@test !isapprox(What, truefun.(xx), atol=1e-6)
 			end
 
-			context("2D") do
-				truefun(x) = 1.1 + slopes[1]*x[1] - slopes[2]*x[2]
-
-				mu = [mu_,mu_]
-				xbnds = [[-2., 12.] for i in 1:length(mu)]
-				
-				# Smolyak Components
-				sk = SmolyakKernel(mu, xbnds)
-				sg = SmolyakGrid(sk)
-				sb = SmolyakBasis(basis_fun_type, sk; NumDeriv=0)
-				sp = SmolyakPoly(sb; NumDeriv=0)
-
-				# Solve for the coefficients
-				BF = VVtoMatrix(BasisFunctions(xgrid(sg), sb));
-				θ = BF\truefun.(xgrid(sg))
-
-				# Update coefficient in Smolyak Polynomial
-				coef!(θ, sp)  
-
-				# make basis on random point
-				NumObs = 10
-				xx = [rpoint.(xbnds) for n in 1:NumObs]
-
-				What = value(xx , sp)
-
-				@fact What --> roughly(truefun.(xx))
-			end
-
-			context("3D") do
-				truefun(x) = 1.1 + slopes[1]*x[1] - slopes[2]*x[2] + slopes[3]*x[3]
-
-				mu = [mu_,mu_,mu_]
-				xbnds = [[-2., 12.] for i in 1:length(mu)]
-				
-				# Smolyak Components
-				sk = SmolyakKernel(mu, xbnds)
-				sg = SmolyakGrid(sk)
-				sb = SmolyakBasis(basis_fun_type, sk; NumDeriv=0)
-				sp = SmolyakPoly(sb; NumDeriv=0)
-
-				# Solve for the coefficients
-				BF = VVtoMatrix(BasisFunctions(xgrid(sg), sb));
-				θ = BF\truefun.(xgrid(sg))
-
-				# Update coefficient in Smolyak Polynomial
-				coef!(θ, sp)  
-
-				# make basis on random point
-				NumObs = 10
-				xx = [rpoint.(xbnds) for n in 1:NumObs]
-
-				What = value(xx , sp)
-
-				@fact What --> roughly(truefun.(xx))
-			end
-
-			context("4D") do
-				truefun(x) = 1.1 + slopes[1]*x[1] - slopes[2]*x[2] + slopes[3]*x[3] * slopes[4] * x[4]
-
-				mu = [mu_,mu_,mu_,mu_]
-				xbnds = [[-2., 12.] for i in 1:length(mu)]
-				
-				# Smolyak Components
-				sk = SmolyakKernel(mu, xbnds)
-				sg = SmolyakGrid(sk)
-				sb = SmolyakBasis(basis_fun_type, sk; NumDeriv=0)
-				sp = SmolyakPoly(sb; NumDeriv=0)
-
-				# Solve for the coefficients
-				BF = VVtoMatrix(BasisFunctions(xgrid(sg), sb));
-				θ = BF\truefun.(xgrid(sg))
-
-				# Update coefficient in Smolyak Polynomial
-				coef!(θ, sp)  
-
-				# make basis on random point
-				NumObs = 10
-				xx = [rpoint.(xbnds) for n in 1:NumObs]
-
-				What = value(xx , sp)
-
-				if mu_ == 1
-					println("approximation level mu=1 is too low in 4D with multiplicative component.")
-					for i in 1:NumObs
-						@fact What --> !roughly(truefun.(xx))
-					end
-
-				else
-					for i in 1:NumObs
-						@fact What --> roughly(truefun.(xx))
-					end
-				end
-
+		else
+			for i in 1:NumObs
+				@test isapprox(What, truefun4.(xx), atol=1e-6)
 			end
 		end
 	end

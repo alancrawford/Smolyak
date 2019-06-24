@@ -18,8 +18,6 @@ using Base.Cartesian
 using LinearAlgebra
 using Combinatorics
 
-using SparseArrays: findnz
-
 # Type aliases 
 VV{T} = Vector{Vector{T}}
 VM{T} = Vector{Matrix{T}}
