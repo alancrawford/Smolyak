@@ -1,6 +1,4 @@
 using Smolyak, Plots
-gr()
-
 
 # Isotrophic Smolyak Grid in 2-dimensions
 
