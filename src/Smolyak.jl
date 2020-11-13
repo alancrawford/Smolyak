@@ -1,3 +1,5 @@
+#dev LInearVERSION < v"0.7.0-beta2.199" && __precompile__()
+
 """
 ## Description
 
@@ -5,49 +7,51 @@ Module contains code to define Smolyak Grids and construct corresponding Interpo
 Polynomials. Both Anisotrophic and Isotrophic Grids/Polynomials are supported and are constructed 
 efficiently following the methodology outlined in Judd, Maliar, Maliar, Valero (2014). 
 
-The code is designed for Julia version: 0.4.
+It supports construction of Smolyak Polynomials with Ordinary, Chebyshev and Spread Polynomial basis functions.
 
-#### Types 
+The code is designed for Julia version: 1.0.
 
-3 main components with corresponding types:
-
-- `SmolyakGrid` : Smolyak Grid
-- `SmolyakBasis` : Smolyak Basis
-- `SmolyakPoly` : Smolyak Polynomial
-
-See help functions in REPL for details.
-
-**Notes**: Utilises following typealiases:
-
-```julia
-typealias AA{T} Array{Array{T,1},1}
-typealias AM{T} Array{Matrix{T},1}                                                                                 
-typealias AAA{T} Array{Array{Array{T,1},1},1}
-typealias AAAA{T} Array{Array{Array{Array{T,1},1},1},1}
-typealias ScalarOrVec{T} Union{T,Vector{T}}
-```
 """
 module Smolyak
 
-using Base.Cartesian, Base.LinAlg, Iterators, Combinatorics
-import Base.show 
 
-AA{T} = Array{Array{T,1},1}
-AM{T} = Array{Matrix{T},1}                                                                                 
-AAA{T} = Array{Array{Array{T,1},1},1}
-AAAA{T} = Array{Array{Array{Array{T,1},1},1},1}
-ScalarOrVec{T} = Union{T,Vector{T}}
+using Base.Cartesian
+using LinearAlgebra
+using Combinatorics
+
+# Type aliases 
+VV{T} = Vector{Vector{T}}
+VM{T} = Vector{Matrix{T}}
 
 # Load Files
-include("smolgrid.jl")
+include("utils.jl")
+include("smolkernel.jl")
 include("smolyakHD.jl")
+include("smolgrid.jl")
+include("BasisFunctions.jl")
+include("OrdinaryPolynomials.jl")
+include("ChebyshevPolynomials.jl")
+include("SpreadPolynomials.jl")
 include("smolbasis.jl")
 include("smolpoly.jl")
 
 # Make functions defined in the module available =#
-export 	SmolyakGrid, makeGrid!, x2z, z2x, x2z!, z2x!,
-		SmolyakHD, makeHDSmolIdx, makeNumGridPts,
-		SmolyakBasis, makeBasis!, new_x!, updateBasis!,
-		SmolyakPoly, makeValue!, makeGrad!, makeHess!, make_pinvBFt!, makeCoef!
+export 	VVtoMatrix, VV, VM,
+		SmolyakKernel, BasisIdx!,
+		HDSmolIdx, NumGridPts,
+		SmolyakKernel,
+		SmolyakGrid, 
+		grid!,
+		grid, xgrid, 
+		lineartransform, x2z, z2x, dxdz, dzdx,
+		OrdinaryPoly, 
+		ChebyshevPoly, 
+		SpreadPoly,
+		SmolyakBasis, 
+		state!, BasisFunctions!, jacobian!, hessian!, SmolyakBasis!,
+		state, BasisFunctions, jacobian, hessian, SBoutput,
+		SmolyakPoly, 
+		coef!, value!, dWdx!, gradient!, d2Wdx2!, SmolyakPoly!,		
+		coef, value, dWdx, gradient, d2Wdx2, SPoutput
 
 end
