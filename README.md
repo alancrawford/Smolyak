@@ -117,6 +117,13 @@ x = [-1.0, 2.3];
 state!(x, sp);
 ```
 
+Update basis functions at the stored x 
+
+```
+# Update the Smolyak Basis Functions
+SmolyakBasis!(sp; NumDeriv=2)
+```
+
 The Smolyak polynomial can be evaluated at the stored state, `sp.sb.x`, and coefficients, `sb.coef`. The user can choose to calculate the value, gradient and hessian and store the results in updated fields using:
 
 ```
@@ -131,17 +138,24 @@ sp.gradient
 sp.hessian
 ```
 
-Or to update value, gradient and hessian at once:
+Or to update basis functions, value, gradient and hessian at once at the stored x 
 
 ```
-# Update value
+# Update value at stored x
 SmolyakPoly!(sp; NumDeriv=0)
 
-# Update value and gradient
+# Update value and gradient at stored x
 SmolyakPoly!(sp; NumDeriv=1)
 
-# Update value, gradient and hessian
+# Update value, gradient and hessian at stored x
 SmolyakPoly!(sp; NumDeriv=2)
+```
+
+You can also do the same with a new x
+
+```
+# Update the state, basis functions, and output up to a number of requested derivatives at a new x
+SmolyakPoly!([-0.5, 1.3], sp; NumDeriv=2)
 ```
 
 Alternatively, the user can assign the value, gradient and hessian at a new state, `x`  given `sp.coef`

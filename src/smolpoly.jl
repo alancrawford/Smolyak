@@ -167,6 +167,23 @@ function hessian!(sp::SmolyakPoly{T}) where T<:Real
 	end
 end
 
+# Update Smolyak Polynomial at a exising state vector
+function SmolyakPoly!( sp::SmolyakPoly{T}; NumDeriv::Int64=0) where T<:Real
+	SmolyakBasis!(sp.sb; NumDeriv=NumDeriv)
+	if NumDeriv==0
+		value!(sp)
+	elseif NumDeriv==1
+		value!(sp)
+		gradient!(sp)
+	elseif NumDeriv==2
+		value!(sp)
+		gradient!(sp)
+		hessian!(sp)
+	else 
+		throw("Maximum number of hand coded derivatives is 2. Consider ForwardDiff for more")
+	end
+end
+
 # Update Smolyak Polynomial at a new state vector
 function SmolyakPoly!( x::Vector{T}, sp::SmolyakPoly{T}; NumDeriv::Int64=0) where T<:Real
 	SmolyakBasis!(x, sp.sb; NumDeriv=NumDeriv)
@@ -184,6 +201,9 @@ function SmolyakPoly!( x::Vector{T}, sp::SmolyakPoly{T}; NumDeriv::Int64=0) wher
 	end
 end
 
+# Some other methods
+SmolyakBasis!(x::Vector{T}, sp::SmolyakPoly{T}; NumDeriv::Int64=0) where T<:Real = SmolyakBasis!(x, sp.sb; NumDeriv=NumDeriv)
+SmolyakBasis!(sp::SmolyakPoly{T}; NumDeriv::Int64=0) where T<:Real = SmolyakBasis!(sp.sb; NumDeriv=NumDeriv)
 
 # -------------------------- Extraction functions ---------------------------- #
 
