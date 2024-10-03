@@ -17,7 +17,7 @@ The figure below shows correlation between basis function on the left and the ba
 
 ![](./Examples/CorrofBF.png)
 
-Chebyshev polynomials have many benefits over ordinary polynomials (i.e. low correlation of basis functions). However, unlike ordinary polynomial they are not - unlike ordinary polynomials - inherently sparse. This is unlikely to be costly in many applications. However, when sparsity is important the user might like to use spread polynomials. 
+Chebyshev polynomials have many benefits over ordinary polynomials (i.e. low correlation of basis functions). However, they are not - unlike ordinary polynomials - inherently sparse. This is unlikely to be costly in many applications. However, when sparsity is important the user might like to use spread polynomials. 
 
 The augmented spread polynomials are a translated version of chebyshev polynomials. Therefore they share some key benefits of Chebyshev polynomials, and they are - like ordinary polynomials - inherently sparse. 
 
